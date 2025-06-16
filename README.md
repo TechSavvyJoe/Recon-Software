@@ -127,3 +127,12 @@ Stock #, VIN, Year, Make, Model, Body, Color, Inventory Date, Created, Tags, Odo
 - Advanced reporting and analytics
 - Mobile app companion
 - Integration with DMS systems
+
+## 📝 License
+MIT License - see LICENSE file for details
+
+## 🤝 Contributing
+Contributions welcome! Please read the contributing guidelines before submitting PRs.
+
+---
+*Vehicle Reconditioning Tracker - Streamlining automotive workflow management*
