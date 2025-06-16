@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Reconditioning Tracker - Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .tab-button {
+            @apply px-4 py-2 border-b-2 font-medium text-sm;
+        }
+        .tab-button.active {
+            @apply border-blue-500 text-blue-600;
+        }
+        .tab-button:not(.active) {
+            @apply border-transparent text-gray-500 hover:text-gray-700;
+        }
+        .tab-content {
+            @apply hidden;
+        }
+        .tab-content.active {
+            @apply block;
+        }
+        .action-button {
+            @apply px-4 py-2 rounded font-medium transition-colors duration-200 flex items-center;
+        }
+        .action-button-primary {
+            @apply bg-blue-600 text-white hover:bg-blue-700;
+        }
+        .action-button-secondary {
+            @apply bg-gray-200 text-gray-700 hover:bg-gray-300;
+        }
+        .action-button-danger {
+            @apply bg-red-600 text-white hover:bg-red-700;
+        }
+        .action-button-success {
+            @apply bg-green-600 text-white hover:bg-green-700;
+        }
+        .card {
+            @apply bg-white rounded-lg shadow p-6;
+        }
+        .form-group {
+            @apply mb-4;
+        }
+        .form-label {
+            @apply block text-sm font-medium text-gray-700 mb-2;
+        }
+        .form-input {
+            @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500;
+        }
+        .form-select {
+            @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white;
+        }
+        .modal {
+            @apply fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50;
+        }
+        .modal-content {
+            @apply relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white;
+        }
+        .demo-banner {
+            @apply bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <!-- Demo Banner -->
+    <div class="demo-banner">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm">
+                    <strong>Demo Mode:</strong> This is a static demo version hosted on GitHub Pages. 
+                    Data is stored locally in your browser and will not persist between sessions.
+                    <a href="https://github.com/TechSavvyJoe/Recon-Software" target="_blank" class="underline">
+                        View source code on GitHub
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">
+                <i class="fas fa-car text-blue-600 mr-3"></i>
+                Vehicle Reconditioning Tracker
+            </h1>
+            <p class="text-lg text-gray-600">Comprehensive workflow management for vehicle reconditioning operations</p>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="border-b border-gray-200 mb-6">
+            <div class="flex space-x-8">
+                <button class="tab-button active" data-tab="upload">
+                    <i class="fas fa-upload mr-2"></i>Upload & Import
+                </button>
+                <button class="tab-button" data-tab="inventory">
+                    <i class="fas fa-list mr-2"></i>Inventory
+                </button>
+                <button class="tab-button" data-tab="recon">
+                    <i class="fas fa-tools mr-2"></i>Recon Status
+                </button>
+                <button class="tab-button" data-tab="detailers">
+                    <i class="fas fa-users mr-2"></i>Detailers
+                </button>
+                <button class="tab-button" data-tab="reports">
+                    <i class="fas fa-chart-bar mr-2"></i>Reports
+                </button>
+            </div>
+        </nav>
+
+        <main id="tab-content-area">
+            <!-- Upload Tab -->
+            <div id="upload-content" class="tab-content active">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="card">
+                        <h3 class="text-lg font-medium mb-4">CSV Upload</h3>
+                        <div class="mb-4">
+                            <input type="file" id="csv-file-input" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                        </div>
+                        <button id="upload-csv-button" class="action-button action-button-primary">
+                            <i class="fas fa-upload mr-2"></i>Import CSV
+                        </button>
+                        
+                        <div class="mt-4 p-3 bg-gray-50 rounded text-sm">
+                            <p class="font-medium mb-2">Expected CSV Format:</p>
+                            <code class="text-xs">Stock#,VIN,Year,Make,Model,Status,Progress,Notes,Date_In,Source,Color,Interior,Odometer</code>
+                            <p class="mt-2 text-gray-600">
+                                <a href="#" id="download-sample-csv" class="text-blue-600 hover:underline">
+                                    <i class="fas fa-download mr-1"></i>Download sample CSV
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="text-lg font-medium mb-4">Current Inventory</h3>
+                        <div id="current-inventory-info" class="mb-4 p-3 bg-gray-50 rounded text-sm">
+                            <div id="inventory-status">No inventory loaded</div>
+                            <div id="inventory-stats" class="mt-2 text-gray-600"></div>
+                        </div>
+                        <button id="load-sample-data-button" class="action-button action-button-secondary mb-2">
+                            <i class="fas fa-database mr-2"></i>Load Sample Data
+                        </button>
+                        <button id="clear-data-button" class="action-button action-button-danger">
+                            <i class="fas fa-trash mr-2"></i>Clear All Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Tab -->
+            <div id="inventory-content" class="tab-content">
+                <div class="card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium">Vehicle Inventory</h3>
+                        <div class="flex space-x-2">
+                            <button id="refresh-inventory-button" class="action-button action-button-secondary">
+                                <i class="fas fa-sync mr-2"></i>Refresh
+                            </button>
+                            <button id="export-csv-button" class="action-button action-button-primary">
+                                <i class="fas fa-download mr-2"></i>Export CSV
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Filters -->
+                    <div class="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="form-label">Filter by Status:</label>
+                            <select id="status-filter" class="form-select">
+                                <option value="">All Statuses</option>
+                                <option value="Available">Available</option>
+                                <option value="In Process">In Process</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Hold">Hold</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Filter by Progress:</label>
+                            <select id="progress-filter" class="form-select">
+                                <option value="">All Progress</option>
+                                <option value="Not Started">Not Started</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Search:</label>
+                            <input type="text" id="search-input" placeholder="Search vehicles..." class="form-input">
+                        </div>
+                        <div class="flex items-end">
+                            <button id="clear-filters-button" class="action-button action-button-secondary">
+                                <i class="fas fa-times mr-2"></i>Clear Filters
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Inventory Table -->
+                    <div class="overflow-x-auto">
+                        <table id="inventory-table" class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock#</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detailer</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table-body" class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">No vehicles loaded</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recon Status Tab -->
+            <div id="recon-content" class="tab-content">
+                <div class="card">
+                    <h3 class="text-lg font-medium mb-4">Reconditioning Status Overview</h3>
+                    <div id="recon-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="p-4 bg-blue-50 rounded-lg">
+                            <h4 class="text-lg font-semibold text-blue-900">Total Vehicles</h4>
+                            <p id="total-vehicles" class="text-3xl font-bold text-blue-600">0</p>
+                        </div>
+                        <div class="p-4 bg-yellow-50 rounded-lg">
+                            <h4 class="text-lg font-semibold text-yellow-900">In Progress</h4>
+                            <p id="in-progress-vehicles" class="text-3xl font-bold text-yellow-600">0</p>
+                        </div>
+                        <div class="p-4 bg-green-50 rounded-lg">
+                            <h4 class="text-lg font-semibold text-green-900">Completed</h4>
+                            <p id="completed-vehicles" class="text-3xl font-bold text-green-600">0</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h4 class="text-lg font-medium mb-4">Progress by Status</h4>
+                        <div id="status-breakdown" class="space-y-2">
+                            <!-- Progress bars will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailers Tab -->
+            <div id="detailers-content" class="tab-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="card">
+                        <h3 class="text-lg font-medium mb-4">Add New Detailer</h3>
+                        <form id="add-detailer-form">
+                            <div class="form-group">
+                                <label for="new-detailer-name" class="form-label">Name *</label>
+                                <input type="text" id="new-detailer-name" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="new-detailer-email" class="form-label">Email</label>
+                                <input type="email" id="new-detailer-email" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="new-detailer-phone" class="form-label">Phone</label>
+                                <input type="tel" id="new-detailer-phone" class="form-input">
+                            </div>
+                            <button type="submit" class="action-button action-button-primary">
+                                <i class="fas fa-plus mr-2"></i>Add Detailer
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="text-lg font-medium mb-4">Detailers List</h3>
+                        <div id="detailers-list">
+                            <div class="p-4 text-center text-gray-500">
+                                No detailers added yet.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reports-content" class="tab-content">
+                <div class="card">
+                    <h3 class="text-lg font-medium mb-4">Reports & Analytics</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="p-4 border rounded-lg">
+                            <h4 class="font-medium mb-2">Workflow Summary</h4>
+                            <div id="workflow-summary" class="space-y-2 text-sm">
+                                <div>Total Vehicles: <span id="report-total">0</span></div>
+                                <div>Available: <span id="report-available">0</span></div>
+                                <div>In Process: <span id="report-in-process">0</span></div>
+                                <div>Completed: <span id="report-completed">0</span></div>
+                                <div>On Hold: <span id="report-hold">0</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 border rounded-lg">
+                            <h4 class="font-medium mb-2">Detailer Workload</h4>
+                            <div id="detailer-workload" class="space-y-2 text-sm">
+                                <div class="text-gray-500">No assignments yet</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex space-x-4">
+                        <button id="export-report-button" class="action-button action-button-primary">
+                            <i class="fas fa-file-export mr-2"></i>Export Report
+                        </button>
+                        <button id="print-report-button" class="action-button action-button-secondary">
+                            <i class="fas fa-print mr-2"></i>Print Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Vehicle Modal -->
+    <div id="edit-vehicle-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">Edit Vehicle</h3>
+                <button id="close-edit-modal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="edit-vehicle-form">
+                <input type="hidden" id="edit-vehicle-index">
+                <div class="form-group">
+                    <label for="edit-status" class="form-label">Status</label>
+                    <select id="edit-status" class="form-select">
+                        <option value="Available">Available</option>
+                        <option value="In Process">In Process</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Hold">Hold</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-progress" class="form-label">Progress</label>
+                    <select id="edit-progress" class="form-select">
+                        <option value="Not Started">Not Started</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-detailer" class="form-label">Assigned Detailer</label>
+                    <select id="edit-detailer" class="form-select">
+                        <option value="">Not Assigned</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-notes" class="form-label">Notes</label>
+                    <textarea id="edit-notes" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" id="cancel-edit" class="action-button action-button-secondary">Cancel</button>
+                    <button type="submit" class="action-button action-button-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Message Modal -->
+    <div id="message-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="message-title" class="text-lg font-medium">Message</h3>
+                <button id="close-message-modal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <p id="message-text" class="mb-4"></p>
+            <div class="flex justify-end">
+                <button id="message-ok-button" class="action-button action-button-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Required libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <script src="github-pages-app.js"></script>
+</body>
+</html>

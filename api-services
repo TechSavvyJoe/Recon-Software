@@ -1,0 +1,184 @@
+// filepath: /Users/missionford/Vehicle Recon/public/api-service.js
+/**
+ * API Service for Vehicle Recon Application
+ * Handles all communication with the backend server
+ */
+
+const API_BASE_URL = window.location.origin;
+
+const ApiService = {
+  /**
+   * Get current inventory information
+   * @returns {Promise<Object>} The current inventory file info
+   */
+  async getCurrentInventory() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/inventory/current`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch current inventory');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting current inventory:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Load CSV data from the current inventory file
+   * @returns {Promise<string>} CSV content as text
+   */
+  async loadInventoryCSV() {
+    try {
+      const inventoryInfo = await this.getCurrentInventory();
+      const response = await fetch(inventoryInfo.url);
+      if (!response.ok) {
+        throw new Error('Failed to load inventory CSV');
+      }
+      return await response.text();
+    } catch (error) {
+      console.error('Error loading inventory CSV:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get list of detailers from the backend
+   * @returns {Promise<Array>} List of detailers
+   */
+  async getDetailers() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/detailers`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch detailers');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting detailers:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Add a new detailer
+   * @param {Object} detailer - Detailer information
+   * @param {string} detailer.name - Name (required)
+   * @param {string} detailer.email - Email (optional)
+   * @param {string} detailer.phone - Phone (optional)
+   * @returns {Promise<Object>} The created detailer
+   */
+  async addDetailer(detailer) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/detailers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(detailer)
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to add detailer');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error adding detailer:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Upload CSV inventory file
+   * @param {File} file - CSV file to upload
+   * @param {Function} onProgress - Progress callback (0-100)
+   * @returns {Promise<Object>} Upload result
+   */
+  async uploadInventoryCSV(file, onProgress) {
+    try {
+      const formData = new FormData();
+      formData.append('inventory', file);
+
+      // Create custom fetch with progress tracking
+      const xhr = new XMLHttpRequest();
+      
+      const uploadPromise = new Promise((resolve, reject) => {
+        xhr.open('POST', `${API_BASE_URL}/api/inventory/upload`);
+        
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable && typeof onProgress === 'function') {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            onProgress(percentComplete);
+          }
+        };
+        
+        xhr.onload = function() {
+          if (this.status >= 200 && this.status < 300) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              resolve(response);
+            } catch (e) {
+              reject(new Error('Invalid response format'));
+            }
+          } else {
+            try {
+              const error = JSON.parse(xhr.responseText);
+              reject(new Error(error.error || 'Upload failed'));
+            } catch (e) {
+              reject(new Error(`Upload failed with status ${this.status}`));
+            }
+          }
+        };
+        
+        xhr.onerror = function() {
+          reject(new Error('Network error during upload'));
+        };
+        
+        xhr.send(formData);
+      });
+      
+      return await uploadPromise;
+    } catch (error) {
+      console.error('Error uploading inventory:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get upload history
+   * @returns {Promise<Array>} List of uploads
+   */
+  async getUploadHistory() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/uploads/history`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch upload history');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting upload history:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get system information
+   * @returns {Promise<Object>} System information
+   */
+  async getSystemInfo() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/system/info`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch system info');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting system info:', error);
+      throw error;
+    }
+  }
+};
+
+// Expose API service globally
+window.ApiService = ApiService;
