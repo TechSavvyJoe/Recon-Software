@@ -1,17 +1,30 @@
 {
   "name": "vehicle-reconditioning-tracker",
-  "version": "1.0.0",
-  "description": "A web app to track vehicle reconditioning workflow.",
-  "main": "src/main.js",
+  "version": "2.0.0",
+  "description": "Complete Vehicle Reconditioning Workflow Tracker with CSV Integration",
+  "main": "server/server.js",
   "scripts": {
-    "dev": "npx tailwindcss -i ./src/styles.css -o ./public/styles.css --watch",
-    "build": "npx tailwindcss -i ./src/styles.css -o ./public/styles.css --minify",
-    "serve": "npx serve ./public"
+    "start": "cd server && npm start",
+    "dev": "cd server && npm run dev",
+    "install-deps": "cd server && npm install",
+    "setup": "npm run install-deps && chmod +x start-server.sh",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "dependencies": {},
-  "devDependencies": {
-    "tailwindcss": "^3.4.1",
-    "postcss": "^8.4.38",
-    "autoprefixer": "^10.4.16"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TechSavvyJoe/Recon-Software.git"
+  },
+  "keywords": [
+    "vehicle",
+    "reconditioning", 
+    "workflow",
+    "inventory",
+    "csv",
+    "admin-panel"
+  ],
+  "author": "TechSavvyJoe",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
