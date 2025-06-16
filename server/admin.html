@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Recon - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .file-drop-zone {
+            border: 2px dashed #cbd5e1;
+            transition: border-color 0.3s ease;
+        }
+        .file-drop-zone.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-6">
+                    <div class="flex items-center">
+                        <i class="fas fa-tools text-2xl mr-3"></i>
+                        <h1 class="text-2xl font-bold">Vehicle Recon Admin Panel</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span id="server-time" class="text-sm opacity-75"></span>
+                        <a href="/" class="bg-blue-500 hover:bg-blue-700 px-3 py-2 rounded text-sm">
+                            <i class="fas fa-eye mr-1"></i> View App
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Navigation Tabs -->
+            <div class="border-b border-gray-200 mb-8">
+                <nav class="-mb-px flex space-x-8">
+                    <button onclick="switchTab('dashboard')" 
+                            class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm active">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </button>
+                    <button onclick="switchTab('inventory')" 
+                            class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-upload mr-2"></i>Inventory Upload
+                    </button>
+                    <button onclick="switchTab('detailers')" 
+                            class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-users mr-2"></i>Detailers
+                    </button>
+                    <button onclick="switchTab('history')" 
+                            class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-history mr-2"></i>Upload History
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <div id="dashboard-content" class="tab-content active">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                                    <i class="fas fa-file-csv text-white"></i>
+                                </div>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">Current Inventory File</dt>
+                                    <dd id="current-file-name" class="text-lg font-medium text-gray-900">Loading...</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                                    <i class="fas fa-clock text-white"></i>
+                                </div>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">Last Updated</dt>
+                                    <dd id="last-updated" class="text-lg font-medium text-gray-900">Loading...</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
+                                    <i class="fas fa-users text-white"></i>
+                                </div>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">Active Detailers</dt>
+                                    <dd id="detailers-count" class="text-lg font-medium text-gray-900">Loading...</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">System Information</h3>
+                    </div>
+                    <div class="p-6">
+                        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Server Time</dt>
+                                <dd id="system-time" class="mt-1 text-sm text-gray-900">Loading...</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Uptime</dt>
+                                <dd id="system-uptime" class="mt-1 text-sm text-gray-900">Loading...</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Node Version</dt>
+                                <dd id="node-version" class="mt-1 text-sm text-gray-900">Loading...</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Platform</dt>
+                                <dd id="platform" class="mt-1 text-sm text-gray-900">Loading...</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Upload Tab -->
+            <div id="inventory-content" class="tab-content">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Upload New Inventory CSV</h3>
+                        <p class="mt-1 text-sm text-gray-600">Replace the current inventory data with a new CSV file</p>
+                    </div>
+                    <div class="p-6">
+                        <div id="upload-zone" class="file-drop-zone rounded-lg p-8 text-center">
+                            <div class="space-y-4">
+                                <div class="flex justify-center">
+                                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400"></i>
+                                </div>
+                                <div class="space-y-2">
+                                    <p class="text-lg font-medium text-gray-900">Drop your CSV file here</p>
+                                    <p class="text-sm text-gray-500">or click to select a file</p>
+                                </div>
+                                <input type="file" id="csv-file-input" accept=".csv" class="hidden">
+                                <button onclick="document.getElementById('csv-file-input').click()" 
+                                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium">
+                                    Select CSV File
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="upload-progress" class="hidden mt-6">
+                            <div class="bg-gray-200 rounded-full h-2">
+                                <div id="progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                            <p id="upload-status" class="mt-2 text-sm text-gray-600">Uploading...</p>
+                        </div>
+
+                        <div id="upload-result" class="hidden mt-6 p-4 rounded-md"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailers Tab -->
+            <div id="detailers-content" class="tab-content">
+                <div class="space-y-6">
+                    <!-- Add Detailer -->
+                    <div class="bg-white rounded-lg shadow">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-medium text-gray-900">Add New Detailer</h3>
+                        </div>
+                        <div class="p-6">
+                            <form id="add-detailer-form" class="space-y-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div>
+                                        <label for="detailer-name" class="block text-sm font-medium text-gray-700">Name *</label>
+                                        <input type="text" id="detailer-name" required 
+                                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="detailer-email" class="block text-sm font-medium text-gray-700">Email</label>
+                                        <input type="email" id="detailer-email" 
+                                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="detailer-phone" class="block text-sm font-medium text-gray-700">Phone</label>
+                                        <input type="tel" id="detailer-phone" 
+                                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                    </div>
+                                </div>
+                                <div>
+                                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium">
+                                        <i class="fas fa-plus mr-2"></i>Add Detailer
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Detailers List -->
+                    <div class="bg-white rounded-lg shadow">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-medium text-gray-900">Current Detailers</h3>
+                        </div>
+                        <div class="overflow-hidden">
+                            <div id="detailers-list" class="divide-y divide-gray-200">
+                                <!-- Detailers will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload History Tab -->
+            <div id="history-content" class="tab-content">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Upload History</h3>
+                    </div>
+                    <div class="overflow-hidden">
+                        <div id="upload-history-list" class="divide-y divide-gray-200">
+                            <!-- Upload history will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

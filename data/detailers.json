@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1750031648551",
+    "name": "John Smith",
+    "email": "john@example.com",
+    "phone": "555-1234",
+    "createdAt": "2025-06-15T23:54:08.551Z",
+    "active": true
+  },
+  {
+    "id": "1750031656521",
+    "name": "Mike Johnson",
+    "email": "mike@example.com",
+    "phone": "555-5678",
+    "createdAt": "2025-06-15T23:54:16.521Z",
+    "active": true
+  },
+  {
+    "id": "1750031679320",
+    "name": "Sarah Davis",
+    "email": "sarah@example.com",
+    "phone": "555-9012",
+    "createdAt": "2025-06-15T23:54:39.320Z",
+    "active": true
+  }
+]

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Recon - System Diagnostics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">🔧 Vehicle Recon System Diagnostics</h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Backend Tests -->
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h2 class="text-xl font-semibold text-blue-800 mb-4">🔌 Backend Status</h2>
+                    <div id="backend-status" class="space-y-2">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-gray-400 rounded-full mr-2" id="server-status"></div>
+                            <span id="server-text">Checking server...</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-gray-400 rounded-full mr-2" id="api-status"></div>
+                            <span id="api-text">Checking API...</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-gray-400 rounded-full mr-2" id="csv-status"></div>
+                            <span id="csv-text">Checking CSV...</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-gray-400 rounded-full mr-2" id="detailers-status"></div>
+                            <span id="detailers-text">Checking detailers...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Access Links -->
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h2 class="text-xl font-semibold text-green-800 mb-4">🌐 Access Points</h2>
+                    <div class="space-y-3">
+                        <a href="http://localhost:3001/" target="_blank" 
+                           class="block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-center">
+                            🎯 Main Application
+                        </a>
+                        <a href="http://localhost:3001/admin" target="_blank" 
+                           class="block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 text-center">
+                            ⚙️ Admin Panel
+                        </a>
+                        <a href="http://localhost:3001/inventory-test.html" target="_blank" 
+                           class="block bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 text-center">
+                            🧪 Test Suite
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Display -->
+            <div class="mt-6 bg-gray-50 p-4 rounded-lg">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">📊 Current Data</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <h3 class="font-semibold text-gray-700 mb-2">Current Inventory File:</h3>
+                        <div id="inventory-info" class="text-sm text-gray-600">Loading...</div>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-700 mb-2">Active Detailers:</h3>
+                        <div id="detailers-info" class="text-sm text-gray-600">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vehicle Data Preview -->
+            <div class="mt-6 bg-gray-50 p-4 rounded-lg">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">🚗 Vehicle Data Preview</h2>
+                <div id="vehicle-preview" class="text-sm">Loading...</div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-6 flex flex-wrap gap-4">
+                <button onclick="runDiagnostics()" 
+                        class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                    🔍 Run Full Diagnostics
+                </button>
+                <button onclick="testDataLoading()" 
+                        class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
+                    📊 Test Data Loading
+                </button>
+                <button onclick="clearCache()" 
+                        class="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700">
+                    🗑️ Clear Cache
+                </button>
+            </div>
+
+            <!-- Console Output -->
+            <div class="mt-6 bg-black text-green-400 p-4 rounded-lg font-mono text-sm h-64 overflow-y-auto" id="console">
+                <div class="text-yellow-400">🔧 Vehicle Recon System Diagnostics Console</div>
+                <div class="text-gray-400">Ready to run diagnostics...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let consoleDiv = document.getElementById('console');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                'info': 'text-green-400',
+                'error': 'text-red-400',
+                'success': 'text-yellow-400',
+                'warning': 'text-orange-400'
+            };
+            
+            const div = document.createElement('div');
+            div.className = colors[type] || 'text-green-400';
+            div.textContent = `[${timestamp}] ${message}`;
+            consoleDiv.appendChild(div);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        function setStatus(elementId, success, message) {
+            const statusEl = document.getElementById(elementId);
+            const textEl = document.getElementById(elementId.replace('-status', '-text'));
+            
+            if (success) {
+                statusEl.className = 'w-3 h-3 bg-green-500 rounded-full mr-2';
+                textEl.textContent = `✅ ${message}`;
+            } else {
+                statusEl.className = 'w-3 h-3 bg-red-500 rounded-full mr-2';
+                textEl.textContent = `❌ ${message}`;
+            }
+        }
+
+        async function testBackend() {
+            try {
+                log('Testing backend server...', 'info');
+                const response = await fetch('/api/system/info');
+                if (response.ok) {
+                    const data = await response.json();
+                    setStatus('server-status', true, `Server running (uptime: ${Math.round(data.uptime/60)}m)`);
+                    log('✅ Backend server is responding', 'success');
+                    return true;
+                } else {
+                    setStatus('server-status', false, 'Server error');
+                    log('❌ Backend server returned error: ' + response.status, 'error');
+                    return false;
+                }
+            } catch (error) {
+                setStatus('server-status', false, 'Server not responding');
+                log('❌ Backend server not accessible: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        async function testAPI() {
+            try {
+                log('Testing API endpoints...', 'info');
+                const response = await fetch('/api/inventory/current');
+                if (response.ok) {
+                    const data = await response.json();
+                    setStatus('api-status', true, 'API working');
+                    document.getElementById('inventory-info').innerHTML = `
+                        <strong>File:</strong> ${data.filename}<br>
+                        <strong>Size:</strong> ${data.size} bytes<br>
+                        <strong>Updated:</strong> ${new Date(data.lastModified).toLocaleString()}
+                    `;
+                    log('✅ Inventory API working: ' + data.filename, 'success');
+                    return data;
+                } else {
+                    setStatus('api-status', false, 'API error');
+                    log('❌ Inventory API error: ' + response.status, 'error');
+                    return null;
+                }
+            } catch (error) {
+                setStatus('api-status', false, 'API not responding');
+                log('❌ API error: ' + error.message, 'error');
+                return null;
+            }
+        }
+
+        async function testCSV(inventoryInfo) {
+            try {
+                log('Testing CSV file access...', 'info');
+                if (!inventoryInfo) {
+                    setStatus('csv-status', false, 'No inventory info');
+                    return null;
+                }
+                
+                const response = await fetch(inventoryInfo.url);
+                if (response.ok) {
+                    const csvText = await response.text();
+                    setStatus('csv-status', true, `CSV loaded (${csvText.length} chars)`);
+                    log('✅ CSV file loaded successfully', 'success');
+                    return csvText;
+                } else {
+                    setStatus('csv-status', false, 'CSV load error');
+                    log('❌ CSV file load error: ' + response.status, 'error');
+                    return null;
+                }
+            } catch (error) {
+                setStatus('csv-status', false, 'CSV not accessible');
+                log('❌ CSV access error: ' + error.message, 'error');
+                return null;
+            }
+        }
+
+        async function testDetailers() {
+            try {
+                log('Testing detailers API...', 'info');
+                const response = await fetch('/api/detailers');
+                if (response.ok) {
+                    const detailers = await response.json();
+                    setStatus('detailers-status', true, `${detailers.length} detailers`);
+                    document.getElementById('detailers-info').innerHTML = detailers.map(d => 
+                        `<div>• ${d.name} ${d.active ? '(Active)' : '(Inactive)'}</div>`
+                    ).join('');
+                    log(`✅ Detailers API working: ${detailers.length} detailers found`, 'success');
+                    return detailers;
+                } else {
+                    setStatus('detailers-status', false, 'Detailers API error');
+                    log('❌ Detailers API error: ' + response.status, 'error');
+                    return [];
+                }
+            } catch (error) {
+                setStatus('detailers-status', false, 'Detailers not accessible');
+                log('❌ Detailers API error: ' + error.message, 'error');
+                return [];
+            }
+        }
+
+        async function testDataLoading() {
+            log('=== Testing Data Loading Process ===', 'info');
+            
+            const inventoryInfo = await testAPI();
+            if (!inventoryInfo) return;
+            
+            const csvText = await testCSV(inventoryInfo);
+            if (!csvText) return;
+            
+            try {
+                log('Parsing CSV data...', 'info');
+                if (typeof window.Papa !== 'undefined') {
+                    const results = window.Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true
+                    });
+                    
+                    const vehicles = results.data.filter(row => row['Stock #']);
+                    log(`✅ Parsed ${vehicles.length} vehicles from CSV`, 'success');
+                    
+                    // Display first few vehicles
+                    const preview = vehicles.slice(0, 3).map(v => 
+                        `<div class="bg-white p-2 rounded mb-2">
+                            <strong>${v['Stock #']}</strong> - ${v['Year']} ${v['Make']} ${v['Model']}
+                            ${v['Color'] ? `(${v['Color']})` : ''}
+                        </div>`
+                    ).join('');
+                    document.getElementById('vehicle-preview').innerHTML = preview;
+                    
+                    log('✅ Data loading test complete', 'success');
+                } else {
+                    log('⚠️ PapaParse library not available', 'warning');
+                }
+            } catch (error) {
+                log('❌ CSV parsing error: ' + error.message, 'error');
+            }
+        }
+
+        async function runDiagnostics() {
+            log('=== Starting Full System Diagnostics ===', 'info');
+            
+            const backendOk = await testBackend();
+            if (!backendOk) {
+                log('❌ Backend not available - stopping diagnostics', 'error');
+                return;
+            }
+            
+            const inventoryInfo = await testAPI();
+            await testCSV(inventoryInfo);
+            await testDetailers();
+            await testDataLoading();
+            
+            log('=== Diagnostics Complete ===', 'success');
+        }
+
+        function clearCache() {
+            log('Clearing browser cache...', 'info');
+            localStorage.clear();
+            sessionStorage.clear();
+            log('✅ Cache cleared', 'success');
+        }
+
+        // Auto-run diagnostics on page load
+        window.addEventListener('load', () => {
+            log('Page loaded - running initial diagnostics...', 'info');
+            setTimeout(runDiagnostics, 500);
+        });
+    </script>
+</body>
+</html>

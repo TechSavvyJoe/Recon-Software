@@ -4,13 +4,1812 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vehicle Reconditioning Tracker</title>
-    <link href="/styles.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind Dark Mode Configuration
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a'
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-in': 'slideIn 0.3s ease-out',
+                        'pulse-soft': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    }
+                }
+            }
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js" onerror="console.error('DIRECT SCRIPT LOAD ERROR: PapaParse failed to load from jsdelivr CDN via script tag onerror event.');"></script> 
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        /* Dark mode styles */
+        .dark {
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+        
+        .dark .bg-white { background-color: #1e293b !important; }
+        .dark .bg-gray-50 { background-color: #0f172a !important; }
+        .dark .bg-gray-100 { background-color: #1e293b !important; }
+        .dark .bg-gray-200 { background-color: #334155 !important; }
+        .dark .text-gray-800 { color: #f1f5f9 !important; }
+        .dark .text-gray-600 { color: #cbd5e1 !important; }
+        .dark .text-gray-900 { color: #f8fafc !important; }
+        .dark .border-gray-200 { border-color: #334155 !important; }
+        .dark .border-gray-300 { border-color: #475569 !important; }
+        
+        /* Enhanced animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes bounceIn {
+            from { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200px 0; }
+            100% { background-position: calc(200px + 100%) 0; }
+        }
+        
+        /* Skeleton loading animations */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200px 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        .dark .skeleton {
+            background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+        }
+        
+        /* Enhanced card animations */
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        /* Modern glass morphism effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dark .glass {
+            background: rgba(30, 41, 59, 0.3);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+        }
+        
+        /* Enhanced UI components */
+        .tab-content { 
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .tab-content.active { display: block; }
+        
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 100; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.7);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .modal-content { 
+            background-color: #fefefe; 
+            margin: 3% auto; 
+            padding: 2rem; 
+            border: none; 
+            width: 90%; 
+            max-width: 900px; 
+            border-radius: 1rem; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); 
+            max-height: 85vh; 
+            overflow-y: auto;
+            animation: bounceIn 0.4s ease-out;
+        }
+        
+        .dark .modal-content {
+            background-color: #1e293b;
+            color: #f1f5f9;
+        }
+        
+        /* Enhanced dashboard cards */
+        .dashboard-vehicle-card { 
+            cursor: pointer; 
+            padding: 1.5rem; 
+            border: 1px solid #e2e8f0;
+            background-color: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 1rem;
+            position: relative;
+            overflow: hidden;
+        } 
+        
+        .dashboard-vehicle-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .dashboard-vehicle-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .dashboard-vehicle-card:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transform: translateY(-4px) scale(1.02);
+            border-color: #3b82f6;
+        }
+        
+        .dark .dashboard-vehicle-card {
+            background-color: #1e293b;
+            border-color: #334155;
+        }
+        
+        .dashboard-vehicle-card h4 {
+            font-size: 1.125rem; 
+            font-weight: 600;
+            color: #1d4ed8;
+            margin-bottom: 0.5rem;
+        }
+        
+        .dark .dashboard-vehicle-card h4 {
+            color: #60a5fa;
+        }
+        
+        .dashboard-vehicle-card p, .dashboard-vehicle-card .text-xs {
+            font-size: 0.875rem; 
+            line-height: 1.5; 
+        }
+        
+        #dashboard-vehicle-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        /* Enhanced buttons */
+        .action-button {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .action-button:active {
+            transform: translateY(0);
+        }
+
+        .disabled-button { 
+            cursor: not-allowed !important; 
+            background-color: #9ca3af !important;
+            opacity: 0.7 !important; 
+        }
+        
+        /* Enhanced charts */
+        .chart-container { 
+            position: relative; 
+            height: 320px; 
+            width: 100%; 
+            max-height: 45vh;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 1rem;
+        }
+        
+        .dark .chart-container {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+        
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 350px;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .toast.success {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .toast.error {
+            background-color: #ef4444;
+            color: white;
+        }
+        
+        .toast.info {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .toast.warning {
+            background-color: #f59e0b;
+            color: white;
+        }
+        
+        /* Loading states */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Photo Gallery Styles */
+        .photo-thumbnail {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f3f4f6;
+        }
+        
+        .photo-thumbnail:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .photo-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .photo-thumbnail .photo-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .photo-thumbnail:hover .photo-overlay {
+            opacity: 1;
+        }
+        
+        .photo-overlay button {
+            color: white;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 0 4px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .photo-overlay button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .photo-preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .photo-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .photo-preview-item .remove-photo {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .drag-over {
+            border-color: #3b82f6 !important;
+            background-color: #dbeafe !important;
+        }
+        
+        /* Mobile responsiveness for photos */
+        @media (max-width: 768px) {
+            #photo-gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .photo-preview-item {
+                width: 80px;
+                height: 80px;
+            }
+        }
+        
+        /* Enhanced mobile responsiveness */
+        @media (max-width: 768px) {
+            #dashboard-vehicle-list {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .modal-content {
+                margin: 5% auto;
+                width: 95%;
+                padding: 1.5rem;
+            }
+            
+            .dashboard-vehicle-card {
+                padding: 1rem;
+            }
+            
+            /* Mobile navigation */
+            .nav-mobile {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .nav-mobile .tab-button {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            /* Mobile timeline */
+            .timeline-steps-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+            }
+            
+            .timeline-step-button {
+                min-height: 80px;
+                padding: 0.5rem;
+                font-size: 0.75rem;
+            }
+            
+            /* Mobile forms */
+            .grid-cols-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            /* Mobile photo gallery */
+            #photo-gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .photo-preview-item {
+                width: 80px;
+                height: 80px;
+            }
+            
+            /* Mobile tables */
+            .overflow-x-auto table {
+                font-size: 0.875rem;
+            }
+            
+            .overflow-x-auto th,
+            .overflow-x-auto td {
+                padding: 0.5rem;
+            }
+            
+            /* Mobile dashboard stats */
+            .grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            /* Mobile search and filters */
+            .flex-wrap {
+                gap: 0.5rem;
+            }
+            
+            .flex-wrap input,
+            .flex-wrap select {
+                min-width: 200px;
+            }
+        }
+        
+        /* Tablet responsiveness */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            #dashboard-vehicle-list {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .timeline-steps-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .modal-content {
+                width: 90%;
+                max-width: 600px;
+            }
+        }
+        
+        /* Touch-friendly improvements */
+        @media (hover: none) and (pointer: coarse) {
+            .action-button,
+            .tab-button,
+            .timeline-step-button {
+                min-height: 44px;
+                padding: 0.75rem 1rem;
+            }
+            
+            .photo-thumbnail {
+                min-height: 120px;
+            }
+            
+            .photo-overlay {
+                opacity: 1;
+                background: rgba(0,0,0,0.5);
+            }
+        }
+        
+        /* Search and filter enhancements */
+        .search-container {
+            position: relative;
+        }
+        
+        .search-container input {
+            transition: all 0.3s ease;
+        }
+        
+        .search-container input:focus {
+            transform: scale(1.02);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .filter-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background-color: #dbeafe;
+            color: #1d4ed8;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .dark .filter-badge {
+            background-color: #1e3a8a;
+            color: #93c5fd;
+        }
+    </style>
+        
+        /* Horizontal Timeline Styles */
+        .timeline-step-compact {
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px;
+            font-size: 10px;
+        }
+        
+        .timeline-step-compact .step-icon {
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        
+        .timeline-step-compact .step-name {
+            font-weight: 600;
+            line-height: 1.1;
+            text-align: center;
+            margin-bottom: 2px;
+        }
+        
+        .timeline-step-compact .step-date {
+            font-size: 9px;
+            margin-bottom: 2px;
+        }
+        
+        .timeline-step-compact .step-button {
+            padding: 2px 4px;
+            font-size: 10px;
+            min-height: 18px;
+        }
+
+        .progress-bar-container {
+            position: relative;
+            width: 100%;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            height: 1.25rem;
+            overflow: hidden;
+        }
+        .progress-bar-fg { 
+            background-color: #3b82f6;
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .progress-bar-text {
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 500;
+            padding: 0 0.5rem;
+            white-space: nowrap;
+        }
+
+        .action-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            text-align: center;
+            padding: 0.75rem 1.25rem; 
+            margin-bottom: 0.5rem;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease-in-out;
+            font-weight: 500; 
+            border: 1px solid transparent;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+        }
+        .action-button:hover {
+             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+             transform: translateY(-1px);
+        }
+        .action-button-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        .action-button-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .action-button-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            border-color: #d1d5db;
+        }
+        .action-button-secondary:hover {
+            background-color: #e5e7eb;
+            border-color: #9ca3af;
+        }
+        .action-button-completed {
+            background-color: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #22c55e;
+            cursor: default;
+            text-align: left;
+            box-shadow: none;
+        }
+        .action-button-completed:hover { transform: none; }
+
+        /* Auto width utility class */
+        .auto-width { width: auto !important; }
+
+        /* Timeline Styles */
+        .timeline-container {
+            position: relative;
+            padding: 2rem 0;
+        }
+        
+        .timeline-line {
+            position: absolute;
+            left: 30px;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to bottom, #e5e7eb 0%, #3b82f6 50%, #e5e7eb 100%);
+            border-radius: 2px;
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-left: 70px;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-item.completed {
+            border-left-color: #22c55e;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+        }
+        
+        .timeline-item.in-progress {
+            border-left-color: #f59e0b;
+            background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+            animation: pulse 2s infinite;
+        }
+        
+        .timeline-item.pending {
+            border-left-color: #e5e7eb;
+            opacity: 0.7;
+        }
+        
+        .timeline-icon {
+            position: absolute;
+            left: -55px;
+            top: 1.5rem;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-icon.completed {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+        
+        .timeline-icon.in-progress {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            animation: pulse 2s infinite;
+        }
+        
+        .timeline-icon.pending {
+            background: linear-gradient(135deg, #9ca3af, #6b7280);
+        }
+        
+        .timeline-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .timeline-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .timeline-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .timeline-status.completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .timeline-status.in-progress {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .timeline-status.pending {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .timeline-description {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+        
+        .timeline-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .timeline-detail-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.875rem;
+            color: #4b5563;
+        }
+        
+        .timeline-detail-item i {
+            margin-right: 0.5rem;
+            color: #9ca3af;
+        }
+        
+        /* Sub-steps for mechanical */
+        .timeline-substeps {
+            margin-top: 1rem;
+            padding-left: 1rem;
+            border-left: 2px solid #e5e7eb;
+        }
+        
+        .timeline-substep {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .timeline-substep:last-child {
+            border-bottom: none;
+        }
+        
+        .timeline-substep-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            margin-right: 0.75rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .timeline-substep-icon.completed {
+            background: #22c55e;
+        }
+        
+        .timeline-substep-icon.pending {
+            background: #d1d5db;
+        }
+        
+        .timeline-substep-content {
+            flex-grow: 1;
+        }
+        
+        .timeline-substep-title {
+            font-weight: 500;
+            color: #1f2937;
+            font-size: 0.875rem;
+        }
+        
+        .timeline-substep-desc {
+            color: #6b7280;
+            font-size: 0.75rem;
+        }
+        
+        .timeline-action-button {
+            margin-top: 1rem;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: none;
+        }
+        
+        .timeline-action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(59, 130, 246, 0.3);
+        }
+        
+        .timeline-action-button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* Progress rings for partial completion */
+        .progress-ring {
+            width: 40px;
+            height: 40px;
+            position: relative;
+        }
+        
+        .progress-ring-circle {
+            transform: rotate(-90deg);
+            transform-origin: center;
+        }
+        
+        .progress-ring-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        /* Title status indicator */
+        .title-status-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .title-status-indicator.in-house {
+            background: #dcfce7;
+            color: #166534;
+            border: 2px solid #22c55e;
+        }
+        
+        .title-status-indicator.not-in-house {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 2px solid #ef4444;
+        }
+        
+        .title-status-indicator:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.05);
+            }
+        }
+        
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .timeline-item {
+            animation: slideInLeft 0.6s ease-out;
+        }
+        
+        /* Enhanced modal for timeline view */
+        .timeline-modal-content {
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+        
+        .timeline-modal-header {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .timeline-vehicle-info h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .timeline-vehicle-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .timeline-progress-summary {
+            text-align: right;
+        }
+        
+        .timeline-progress-circle {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+        }
+        
+        .timeline-requirements {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .timeline-requirements h4 {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        
+        .timeline-requirements-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .timeline-requirement-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .timeline-requirement-item i {
+            margin-right: 0.5rem;
+        }
+        
+        .timeline-requirement-item.met {
+            color: #059669;
+        }
+        
+        .timeline-requirement-item.not-met {
+            color: #dc2626;
+        }
+
+        /* Horizontal Timeline Styles */
+        .horizontal-timeline-container {
+            width: 100%;
+            padding: 1rem 0;
+        }
+        
+        .timeline-steps-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .timeline-step-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .timeline-step-button {
+            width: 100%;
+            min-height: 120px;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+        
+        .timeline-step-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .timeline-step-button.completed {
+            background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
+            border-color: #22c55e;
+            color: #166534;
+        }
+        
+        .timeline-step-button.in-progress {
+            background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+            border-color: #f59e0b;
+            color: #92400e;
+            animation: pulse 2s infinite;
+        }
+        
+        .timeline-step-button.pending {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            color: #6b7280;
+        }
+        
+        .step-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .step-name {
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .step-status {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        
+        .step-date {
+            font-size: 0.6rem;
+            margin-top: 0.25rem;
+            opacity: 0.7;
+        }
+        
+        .step-checkbox {
+            position: absolute;
+            bottom: 0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .step-substeps {
+            position: absolute;
+            bottom: 0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .substep-item {
+            font-size: 0.6rem;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+        
+        .timeline-notes-section {
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .timeline-steps-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.25rem;
+            }
+            
+            .timeline-step-button {
+                min-height: 100px;
+                padding: 0.5rem;
+            }
+            
+            .step-icon {
+                font-size: 1.25rem;
+            }
+            
+            .step-name {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none">
+        <!-- Toasts will be dynamically added here -->
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-8 flex items-center space-x-4">
+            <div class="loading-spinner animate-spin rounded-full border-4 border-blue-500 border-t-transparent h-8 w-8"></div>
+            <span class="text-lg font-medium">Loading...</span>
+        </div>
+    </div>
+    
+    <!-- Dark Mode Toggle -->
+    <button id="dark-mode-toggle" class="fixed top-4 left-4 z-40 p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group">
+        <i class="fas fa-moon dark:hidden text-gray-600 group-hover:text-blue-600"></i>
+        <i class="fas fa-sun hidden dark:block text-yellow-400 group-hover:text-yellow-300"></i>
+    </button>
+    
+    <div class="container mx-auto p-4">
+        <header class="bg-sky-700 text-white p-6 rounded-lg shadow-md mb-6 relative">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold">Vehicle Reconditioning Workflow Tracker</h1>
+                    <p class="text-sky-200 mt-2">Streamline your vehicle reconditioning process with real-time tracking and analytics</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Notification Bell -->
+                    <div class="relative">
+                        <button id="notification-bell" class="text-white hover:text-sky-200 transition-colors p-2 rounded-full hover:bg-sky-600" title="Notifications">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                        </button>
+                    </div>
+                    <!-- Performance Metrics -->
+                    <button id="performance-metrics" class="text-white hover:text-sky-200 transition-colors p-2 rounded-full hover:bg-sky-600" title="Performance Metrics">
+                        <i class="fas fa-chart-line text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="mb-6 bg-white p-3 rounded-lg shadow">
+            <nav class="flex flex-wrap space-x-2 sm:space-x-4" id="tabs">
+                <button data-tab="dashboard" class="tab-button py-2 px-4 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition">
+                    <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                </button>
+                <button data-tab="workflow" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">
+                    <i class="fas fa-tasks mr-2"></i>Workflow
+                </button>
+                <button data-tab="inventory" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition" title="Manage vehicle inventory">
+                    <i class="fas fa-list mr-2"></i>Inventory
+                </button>
+                <button data-tab="reports" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition" title="View reports and analytics">
+                    <i class="fas fa-chart-bar mr-2"></i>Reports
+                </button>
+                <button data-tab="upload" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition" title="Upload data files">
+                    <i class="fas fa-upload mr-2"></i>Upload Data
+                </button>
+                <button data-tab="detailers" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition" title="Manage detailers">
+                    <i class="fas fa-users mr-2"></i>Detailers
+                </button>
+                <button id="admin-button" class="tab-button py-2 px-4 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition ml-auto" title="Open admin panel">
+                    <i class="fas fa-cog mr-2"></i>Admin Panel
+                </button>
+            </nav>
+        </div>
+
+        <main id="tab-content-area">
+            <div id="dashboard-content" class="tab-content active p-6 bg-white rounded-lg shadow">
+                <div class="flex flex-wrap gap-4 mb-6 items-center">
+                    <h2 class="text-2xl font-semibold">Active Reconditioning Overview</h2>
+                    <input type="text" id="dashboard-search" placeholder="Search VIN, Stock#, Make, Model..." class="p-2 border rounded-md flex-grow min-w-[200px] sm:min-w-[300px]">
+                    <div class="flex items-center space-x-2">
+                        <label for="dashboard-status-filter" class="text-sm font-medium">Filter by Status:</label>
+                        <select id="dashboard-status-filter" class="p-2 border rounded-md">
+                            <option value="">All Active</option>
+                            <option value="needs_attention">Needs Attention</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow">
+                        <div class="flex items-center">
+                            <i class="fas fa-car text-2xl mr-3"></i>
+                            <div>
+                                <p class="text-blue-100">Active Vehicles</p>
+                                <p id="total-active-count" class="text-2xl font-bold">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-4 rounded-lg shadow">
+                        <div class="flex items-center">
+                            <i class="fas fa-wrench text-2xl mr-3"></i>
+                            <div>
+                                <p class="text-yellow-100">In Mechanical</p>
+                                <p id="mechanical-count" class="text-2xl font-bold">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg shadow">
+                        <div class="flex items-center">
+                            <i class="fas fa-spray-can text-2xl mr-3"></i>
+                            <div>
+                                <p class="text-purple-100">In Detailing</p>
+                                <p id="detailing-count" class="text-2xl font-bold">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg shadow">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-2xl mr-3"></i>
+                            <div>
+                                <p class="text-green-100">Lot Ready</p>
+                                <p id="lot-ready-count" class="text-2xl font-bold">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dashboard-vehicle-list" class="space-y-4"></div>
+            </div>
+
+            <div id="workflow-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold">Workflow Board</h2>
+                    <div class="flex gap-2">
+                        <input type="text" id="workflow-search" placeholder="Search vehicles..." class="p-2 border rounded-md">
+                        <button id="add-vehicle-workflow" class="action-button action-button-primary auto-width">>
+                            <i class="fas fa-plus mr-2"></i>Add Vehicle
+                        </button>
+                    </div>
+                </div>
+                <div id="workflow-board" class="workflow-board"></div>
+            </div>
+
+            <div id="inventory-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold">Inventory Management</h2>
+                    <div class="flex gap-2">
+                        <button id="add-vehicle-btn" class="action-button action-button-primary auto-width">>
+                            <i class="fas fa-plus mr-2"></i>Add Vehicle
+                        </button>
+                        <button id="export-csv-button" class="action-button action-button-secondary auto-width">>
+                            <i class="fas fa-download mr-2"></i>Export CSV
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-4 flex flex-wrap gap-4 items-center">
+                    <input type="text" id="inventory-search" placeholder="Search vehicles..." class="p-2 border rounded-md">
+                    <select id="inventory-view-filter" class="p-2 border rounded-md">
+                        <option value="">All Vehicles</option>
+                        <option value="active">Active Only</option>
+                        <option value="sold">Sold Only</option>
+                    </select>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border border-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="sortable px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-column="stockNumber">
+                                    Stock # <span class="sort-arrow"></span>
+                                </th>
+                                <th class="sortable px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-column="year">
+                                    Year <span class="sort-arrow"></span>
+                                </th>
+                                <th class="sortable px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-column="make">
+                                    Make <span class="sort-arrow"></span>
+                                </th>
+                                <th class="sortable px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-column="model">
+                                    Model <span class="sort-arrow"></span>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Progress
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="reports-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <h2 class="text-2xl font-semibold mb-6">Recon Reports & Analytics</h2>
+                
+                <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                    <div class="p-4 bg-sky-50 rounded-lg shadow">
+                        <h4 class="text-md font-semibold text-sky-700">Avg. Total Recon Time</h4>
+                        <p id="avgTotalReconTime" class="text-2xl font-bold text-sky-600">N/A</p>
+                        <p class="text-xs text-gray-500">(New Arrival to Lot Ready)</p>
+                    </div>
+                    <div class="p-4 bg-pink-50 rounded-lg shadow">
+                        <h4 class="text-md font-semibold text-pink-700">Vehicles in Process</h4>
+                        <p id="vehiclesInProcess" class="text-2xl font-bold text-pink-600">0</p>
+                        <p class="text-xs text-gray-500">(Currently being worked on)</p>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-lg shadow">
+                        <h4 class="text-md font-semibold text-green-700">Completed This Month</h4>
+                        <p id="completedThisMonth" class="text-2xl font-bold text-green-600">0</p>
+                        <p class="text-xs text-gray-500">(Moved to Lot Ready)</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="chart-container">
+                        <h3 class="text-xl font-medium mb-2">Status Distribution</h3>
+                        <canvas id="statusChart" class="rounded-lg shadow-sm"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="text-xl font-medium mb-2">Completion Trend</h3>
+                        <canvas id="trendChart" class="rounded-lg shadow-sm"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="upload-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <h2 class="text-2xl font-semibold mb-6">Data Import & Sync</h2>
+                
+                <div id="csv-library-status" class="mb-4"></div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="border rounded-lg p-4">
+                        <h3 class="text-lg font-medium mb-4">CSV Upload</h3>
+                        <div class="mb-4">
+                            <input type="file" id="csv-file-input" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                        </div>
+                        <button id="upload-csv-button" class="action-button action-button-primary">
+                            <i class="fas fa-upload mr-2"></i>Import CSV
+                        </button>
+                        
+                        <div class="mt-4 p-3 bg-gray-50 rounded text-sm">
+                            <p class="font-medium mb-2">Expected CSV Format:</p>
+                            <code class="text-xs">Stock#,VIN,Year,Make,Model,Status,Progress,Notes,Date_In,Source,Color,Interior,Odometer</code>
+                        </div>
+                    </div>
+                    
+                    <div class="border rounded-lg p-4">
+                        <h3 class="text-lg font-medium mb-4">Google Sheets Sync</h3>
+                        <p class="text-sm text-gray-600 mb-4">Sync with your Google Sheets inventory for real-time updates.</p>
+                        <button id="sync-google-sheet-button" class="action-button action-button-secondary">
+                            <i class="fas fa-sync mr-2"></i>Sync Google Sheet
+                        </button>
+                        <button id="refresh-google-sheet-button" class="action-button action-button-secondary">
+                            <i class="fas fa-refresh mr-2"></i>Refresh Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="detailers-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <h2 class="text-2xl font-semibold mb-6">Detailer Management</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="border rounded-lg p-4">
+                        <h3 class="text-lg font-medium mb-4">Add New Detailer</h3>
+                        <div class="flex gap-2">
+                            <input type="text" id="new-detailer-name" placeholder="Detailer name..." class="flex-1 p-2 border rounded-md">
+                            <button id="add-detailer-button" class="action-button action-button-primary auto-width">>
+                                <i class="fas fa-plus mr-2"></i>Add
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="border rounded-lg p-4">
+                        <h3 class="text-lg font-medium mb-4">Current Detailers</h3>
+                        <div id="detailer-list" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div id="vehicle-detail-modal" class="modal">
+            <div class="modal-content relative">
+                <span class="close-modal absolute top-4 right-4 text-2xl cursor-pointer text-gray-500 hover:text-gray-700">&times;</span>
+                <div id="vehicle-detail-content"></div>
+            </div>
+        </div>
+        
+        <div id="status-update-modal" class="modal">
+            <div class="modal-content relative">
+                <span class="close-modal absolute top-4 right-4 text-2xl cursor-pointer text-gray-500 hover:text-gray-700">&times;</span>
+                <div id="status-update-content"></div>
+            </div>
+        </div>
+        
+        <div id="message-modal" class="modal">
+            <div class="modal-content w-full max-w-md">
+                <span class="close-message-modal absolute top-4 right-4 text-2xl cursor-pointer text-gray-500 hover:text-gray-700">&times;</span>
+                <div class="p-4">
+                    <h3 id="message-modal-title" class="text-lg font-semibold mb-2"></h3>
+                    <div id="message-modal-text" class="mb-4"></div>
+                    <button id="message-modal-ok-button" class="action-button action-button-primary">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Vehicle Detail Modal with Timeline -->
+        <div id="vehicle-timeline-modal" class="modal">
+            <div class="modal-content timeline-modal-content">
+                <span class="close-modal absolute top-4 right-4 text-2xl cursor-pointer text-gray-500 hover:text-gray-700">&times;</span>
+                
+                <div class="timeline-modal-header">
+                    <div class="timeline-vehicle-info">
+                        <h3 id="timeline-vehicle-title"></h3>
+                        <div class="timeline-vehicle-details" id="timeline-vehicle-details"></div>
+                    </div>
+                    <div class="timeline-progress-summary">
+                        <div class="timeline-progress-circle" id="timeline-overall-progress"></div>
+                        <div class="text-center">
+                            <div class="font-semibold text-gray-700">Overall Progress</div>
+                            <div class="text-sm text-gray-500">Lot Ready Status</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-requirements" id="timeline-lot-ready-requirements">
+                    <h4>Lot Ready Requirements</h4>
+                    <div class="timeline-requirements-list" id="timeline-requirements-list"></div>
+                </div>
+
+                <div class="timeline-container" id="timeline-container">
+                    <div class="timeline-line"></div>
+                    <!-- Timeline items will be dynamically generated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Vehicle Modal -->
+        <div id="add-vehicle-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal absolute top-4 right-4 text-2xl cursor-pointer text-gray-500 hover:text-gray-700">&times;</span>
+                <h3 class="text-xl font-semibold mb-6">Add New Vehicle</h3>
+                <form id="add-vehicle-form" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Stock Number *</label>
+                            <input type="text" id="add-stock-number" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Year *</label>
+                            <input type="number" id="add-year" required min="1900" max="2030"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Make *</label>
+                            <input type="text" id="add-make" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Model *</label>
+                            <input type="text" id="add-model" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                            <input type="text" id="add-color"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Detailer</label>
+                            <select id="add-detailer" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Unassigned</option>
+                                <option value="Joe Wilson">Joe Wilson</option>
+                                <option value="Mike Davis">Mike Davis</option>
+                                <option value="Sarah Johnson">Sarah Johnson</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Vehicle Photos</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                            <input type="file" id="add-photos" multiple accept="image/*" class="hidden">
+                            <label for="add-photos" class="cursor-pointer">
+                                <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                                <p class="text-gray-600">Click to upload photos or drag and drop</p>
+                                <p class="text-xs text-gray-500 mt-1">Supports JPG, PNG, WebP (Max 5MB each)</p>
+                            </label>
+                        </div>
+                        <div id="photo-preview" class="grid grid-cols-4 gap-3 mt-3 hidden"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                        <textarea id="add-notes" rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  placeholder="Initial notes about the vehicle..."></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" onclick="closeModal('add-vehicle-modal')" 
+                                class="action-button action-button-secondary">Cancel</button>
+                        <button type="submit" class="action-button action-button-primary">Add Vehicle</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Panel Modal -->
+    <div id="notification-panel-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="closeModal('notification-panel-modal')"></div>
+        <div class="modal-container max-w-md">
+            <div class="modal-content">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Notifications</h3>
+                    <div class="flex space-x-2">
+                        <button onclick="notificationManager.markAllAsRead()" class="text-sm text-blue-600 hover:text-blue-800">Mark All Read</button>
+                        <button onclick="closeModal('notification-panel-modal')" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="notification-list" class="space-y-3 max-h-96 overflow-y-auto">
+                    <!-- Notifications will be dynamically added here -->
+                </div>
+                <div id="no-notifications" class="text-center text-gray-500 py-8 hidden">
+                    <i class="fas fa-bell-slash text-3xl mb-2"></i>
+                    <p>No notifications</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics Modal -->
+    <div id="performance-metrics-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="closeModal('performance-metrics-modal')"></div>
+        <div class="modal-container max-w-4xl">
+            <div class="modal-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold">Performance Metrics</h3>
+                    <div class="flex space-x-2">
+                        <button onclick="performanceMonitor.exportMetrics()" class="action-button action-button-secondary">
+                            <i class="fas fa-download mr-2"></i>Export
+                        </button>
+                        <button onclick="closeModal('performance-metrics-modal')" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-blue-800">Load Time</h4>
+                        <p id="avg-load-time" class="text-2xl font-bold text-blue-600">0ms</p>
+                        <p class="text-xs text-blue-600">Average page load</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-green-800">Render Time</h4>
+                        <p id="avg-render-time" class="text-2xl font-bold text-green-600">0ms</p>
+                        <p class="text-xs text-green-600">Average render time</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-red-800">Errors</h4>
+                        <p id="error-count" class="text-2xl font-bold text-red-600">0</p>
+                        <p class="text-xs text-red-600">Last hour</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="font-semibold mb-2">Recent Errors</h4>
+                        <div id="recent-errors" class="bg-gray-50 rounded-lg p-4 max-h-32 overflow-y-auto">
+                            <p class="text-gray-500 text-sm">No recent errors</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold mb-2">Slow Operations</h4>
+                        <div id="slow-operations" class="bg-gray-50 rounded-lg p-4 max-h-32 overflow-y-auto">
+                            <p class="text-gray-500 text-sm">No slow operations detected</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Gallery Modal -->
+    <div id="photo-gallery-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="closeModal('photo-gallery-modal')"></div>
+        <div class="modal-container max-w-4xl">
+            <div class="modal-content">
+                <span class="close-modal absolute top-4 right-4 text-2xl cursor-pointer text-gray-500 hover:text-gray-700">&times;</span>
+                <h3 class="text-xl font-semibold mb-6">Vehicle Photos</h3>
+                
+                <!-- Photo Upload Section -->
+                <div class="mb-6">
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
+                        <input type="file" id="gallery-upload" multiple accept="image/*" class="hidden">
+                        <label for="gallery-upload" class="cursor-pointer">
+                            <i class="fas fa-plus text-2xl text-gray-400 mb-2"></i>
+                            <p class="text-gray-600">Add More Photos</p>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Photo Grid -->
+                <div id="photo-gallery-grid" class="grid grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                    <!-- Photos will be dynamically added here -->
+                </div>
+                
+                <!-- Photo Actions -->
+                <div class="flex justify-between items-center mt-6 pt-4 border-t">
+                    <span id="photo-count" class="text-sm text-gray-600">0 photos</span>
+                    <div class="space-x-3">
+                        <button onclick="downloadAllPhotos()" class="action-button action-button-secondary">
+                            <i class="fas fa-download mr-2"></i>Download All
+                        </button>
+                        <button onclick="closeModal('photo-gallery-modal')" class="action-button action-button-primary">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIN Scanner Modal -->
+    <div id="vinScannerModal" class="modal hidden">
+        <div class="modal-backdrop bg-black bg-opacity-50" onclick="closeVinScanner()"></div>
+        <div class="modal-content bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-auto mt-20">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="fas fa-camera mr-2"></i>VIN Scanner
+                </h3>
+                <button onclick="closeVinScanner()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="vinScannerContent">
+                <!-- Camera not available message -->
+                <div id="noCameraMessage" class="hidden text-center py-8">
+                    <i class="fas fa-camera-slash text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">Camera not available on this device</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-500">Please enter VIN manually</p>
+                </div>
+                
+                <!-- Camera view -->
+                <div id="cameraView" class="hidden">
+                    <div class="relative bg-black rounded-lg overflow-hidden mb-4">
+                        <video id="vinScannerVideo" class="w-full h-48 object-cover" autoplay playsinline></video>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="border-2 border-red-500 w-3/4 h-1/3 rounded-lg"></div>
+                        </div>
+                        <div class="absolute bottom-2 left-2 right-2 text-center">
+                            <p class="text-white text-sm bg-black bg-opacity-50 rounded px-2 py-1">
+                                Position VIN within the red frame
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mb-4">
+                        <button onclick="captureVin()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                            <i class="fas fa-camera mr-2"></i>Capture VIN
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Detected VIN display -->
+                <div id="detectedVinSection" class="hidden">
+                    <div class="bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg p-4 mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                            <span class="text-green-800 dark:text-green-200 font-medium">VIN Detected:</span>
+                        </div>
+                        <p id="detectedVin" class="text-green-900 dark:text-green-100 font-mono text-lg mt-2"></p>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="useDetectedVin()" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+                            <i class="fas fa-check mr-2"></i>Use This VIN
+                        </button>
+                        <button onclick="retryVinScan()" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+                            <i class="fas fa-redo mr-2"></i>Try Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Manual VIN entry fallback -->
+            <div class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Or enter VIN manually:</p>
+                <div class="flex gap-2">
+                    <input type="text" id="manualVinInput" placeholder="Enter VIN..." 
+                           class="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white dark:bg-gray-700" 
+                           maxlength="17">
+                    <button onclick="useManualVin()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                        <i class="fas fa-check"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Screen Photo Viewer -->
+    <div id="photo-viewer-modal" class="modal hidden">
+        <div class="modal-backdrop bg-black bg-opacity-90" onclick="closeModal('photo-viewer-modal')"></div>
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="relative max-w-full max-h-full">
+                <button onclick="closeModal('photo-viewer-modal')" 
+                        class="absolute top-4 right-4 text-white text-2xl hover:text-gray-300 z-10">
+                    <i class="fas fa-times"></i>
+                </button>
+                <img id="photo-viewer-image" src="" alt="Full size photo" 
+                     class="max-w-full max-h-full object-contain rounded-lg">
+                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg">
+                    <span id="photo-viewer-info">Photo 1 of 5</span>
+                </div>
+                <!-- Navigation arrows -->
+                <button onclick="navigatePhoto(-1)" 
+                        class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-3xl hover:text-gray-300">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button onclick="navigatePhoto(1)" 
+                        class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-3xl hover:text-gray-300">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include the main JavaScript -->
+    <script src="./main.js"></script>
 </body>
 </html>

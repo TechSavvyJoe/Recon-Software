@@ -5,7 +5,8 @@
   "main": "src/main.js",
   "scripts": {
     "dev": "npx tailwindcss -i ./src/styles.css -o ./public/styles.css --watch",
-    "build": "npx tailwindcss -i ./src/styles.css -o ./public/styles.css --minify"
+    "build": "npx tailwindcss -i ./src/styles.css -o ./public/styles.css --minify",
+    "serve": "npx serve ./public"
   },
   "dependencies": {},
   "devDependencies": {

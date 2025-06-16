@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Vehicle Recon Tracker</title>
+    <script>
+        // Simple test to check if the app loads
+        window.onload = function() {
+            console.log('Testing Vehicle Reconditioning Tracker...');
+            
+            // Check if the main elements exist
+            const dashboard = document.getElementById('dashboard-content');
+            const workflow = document.getElementById('workflow-content');
+            const inventory = document.getElementById('inventory-content');
+            
+            console.log('Dashboard element:', dashboard ? 'Found' : 'Missing');
+            console.log('Workflow element:', workflow ? 'Found' : 'Missing');
+            console.log('Inventory element:', inventory ? 'Found' : 'Missing');
+            
+            // Test timeline functionality
+            if (typeof window.showVehicleDetailModal === 'function') {
+                console.log('showVehicleDetailModal function: Available');
+            } else {
+                console.log('showVehicleDetailModal function: Missing');
+            }
+            
+            // Test new workflow functions
+            if (typeof window.toggleTitleInHouse === 'function') {
+                console.log('toggleTitleInHouse function: Available');
+            } else {
+                console.log('toggleTitleInHouse function: Missing');
+            }
+            
+            if (typeof window.updateMechanicalSubStep === 'function') {
+                console.log('updateMechanicalSubStep function: Available');
+            } else {
+                console.log('updateMechanicalSubStep function: Missing');
+            }
+            
+            console.log('Test completed. Check the main application at localhost:8080');
+        };
+    </script>
+</head>
+<body>
+    <h1>Vehicle Reconditioning Tracker Test</h1>
+    <p>Check the console for test results.</p>
+    <p><a href="http://localhost:8080">Open Main Application</a></p>
+</body>
+</html>

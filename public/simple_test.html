@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Recon - Simple Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-6">Vehicle Reconditioning Tracker</h1>
+        
+        <!-- Tab Navigation -->
+        <div class="mb-4">
+            <button data-tab="dashboard" class="tab-button py-2 px-4 bg-blue-500 text-white rounded mr-2">Dashboard</button>
+            <button data-tab="inventory" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 rounded mr-2">Inventory</button>
+        </div>
+        
+        <!-- Tab Contents -->
+        <div id="dashboard-content" class="tab-content active p-6 bg-white rounded shadow">
+            <h2>Dashboard</h2>
+            <div id="dashboard-data">Loading...</div>
+        </div>
+        
+        <div id="inventory-content" class="tab-content p-6 bg-white rounded shadow">
+            <h2>Inventory</h2>
+            <div id="inventory-data">Loading...</div>
+        </div>
+    </div>
+    
+    <script>
+        // Simple test script
+        console.log('Simple test page loaded');
+        
+        // Global state
+        let currentVehicleData = [
+            {
+                'Stock #': 'TEST001',
+                'Year': '2020',
+                'Make': 'Ford',
+                'Model': 'Escape',
+                'Status': 'New Arrival',
+                'Date In': '2025-06-13'
+            }
+        ];
+        
+        // Utility function
+        function $(id) { 
+            return document.getElementById(id); 
+        }
+        
+        // Tab switching
+        function switchTab(tabId) {
+            console.log('Switching to tab:', tabId);
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Reset all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.className = 'tab-button py-2 px-4 bg-gray-200 text-gray-700 rounded mr-2';
+            });
+            
+            // Show selected tab
+            const content = $(tabId + '-content');
+            if (content) {
+                content.classList.add('active');
+            }
+            
+            // Highlight selected button
+            const button = document.querySelector(`[data-tab="${tabId}"]`);
+            if (button) {
+                button.className = 'tab-button py-2 px-4 bg-blue-500 text-white rounded mr-2';
+            }
+            
+            // Render content
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'inventory') renderInventory();
+        }
+        
+        function renderDashboard() {
+            const el = $('dashboard-data');
+            if (!el) return;
+            
+            el.innerHTML = `
+                <h3>Vehicle Count: ${currentVehicleData.length}</h3>
+                <div class="mt-4">
+                    ${currentVehicleData.map(v => `
+                        <div class="p-3 bg-gray-50 rounded mb-2">
+                            <strong>${v['Year']} ${v['Make']} ${v['Model']}</strong><br>
+                            Stock: ${v['Stock #']} | Status: ${v['Status']}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function renderInventory() {
+            const el = $('inventory-data');
+            if (!el) return;
+            
+            el.innerHTML = `
+                <table class="w-full border">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border p-2">Stock #</th>
+                            <th class="border p-2">Vehicle</th>
+                            <th class="border p-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${currentVehicleData.map(v => `
+                            <tr>
+                                <td class="border p-2">${v['Stock #']}</td>
+                                <td class="border p-2">${v['Year']} ${v['Make']} ${v['Model']}</td>
+                                <td class="border p-2">${v['Status']}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded');
+            
+            // Add event listeners
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const tabId = this.getAttribute('data-tab');
+                    switchTab(tabId);
+                });
+            });
+            
+            // Initial render
+            renderDashboard();
+            
+            console.log('Initialization complete');
+        });
+    </script>
+</body>
+</html>

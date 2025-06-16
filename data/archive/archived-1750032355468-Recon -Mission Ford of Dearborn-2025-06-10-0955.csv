@@ -1,0 +1,41 @@
+﻿Age,Tags,Stock #,VIN,Photos,Created,"Inventory
+Date",Year,Make,Model,Body,Color,Odometer,"Original
+Cost",Unit Cost,"Appraised
+Value",Vehicle Source
+1,,STKA61230,3FMTK4SE9PMA61230,1,6/5/25,6/9/25,2023,Ford,Mustang Mach-E,4D Sport Utility,Shadow Black,"6,124","$37,500 ","$37,500 ","$37,500 ",Sight Unseen
+5,No-Title,T7784P,3GNKBHR48NS179564,1,6/4/25,6/5/25,2022,Chevrolet,Blazer,4D Sport Utility,Iron Gray Metallic,"36,613","$24,920 ","$24,320 ","$23,500 ",OpenLane
+5,,T7783P,1C4PJMAK3CW129676,1,6/5/25,6/5/25,2012,Jeep,Liberty,4D Sport Utility,Deep Cherry Red Crystal Pearlcoat,"99,943","$7,280 ","$7,380 ","$7,280 ",Manheim
+6,,T250521A,1FM5K8D81FGA63683,1,5/29/25,6/4/25,2015,Ford,Explorer,4D Sport Utility,Ingot Silver,"83,000","$9,700 ","$9,100 ","$9,000 ",Sight Unseen
+12,,T250518A,1FMCU9G67LUC03251,23,5/19/25,5/29/25,2020,Ford,Escape,4D Sport Utility,Blue Metallic,"16,061","$18,200 ","$18,193 ","$17,500 ",Appraisal
+20,"lincoln,of,troy",T7779P,1FMSK8DH1LGC08221,26,5/20/25,5/21/25,2020,Ford,Explorer,4D Sport Utility,Agate Black Metallic,"79,787","$17,287 ","$17,431 ","$17,187 ",Appraisal
+21,,T7776P,2GNAXUEV4L6240084,23,5/19/25,5/20/25,2020,Chevrolet,Equinox,4D Sport Utility,Silver Ice Metallic,"64,019","$13,700 ","$12,768 ","$12,500 ",Appraisal
+22,,T7777P,1FTER4KH7RLE22512,22,5/14/25,5/19/25,2024,Ford,Ranger,4D Crew Cab,Azure Gray Metallic Tri-Coat,"15,142","$35,100 ","$35,436 ","$35,000 ",Sight Unseen
+27,,T7773P,KNDETCA73R7543986,24,5/9/25,5/14/25,2024,Kia,Seltos,4D Sport Utility,Snow White Pearl,"24,212","$23,700 ","$23,309 ","$23,000 ",Appraisal
+32,,T7770PA,1C4RJKBG7N8595741,24,5/1/25,5/9/25,2022,Jeep,Grand Cherokee L,4D Sport Utility,Baltic Gray Metallic Clearcoat,"32,312","$30,700 ","$30,234 ","$30,000 ",Appraisal
+33,,T7766P,MAJ6S3KL2LC327263,24,5/7/25,5/8/25,2020,Ford,EcoSport,4D Sport Utility,Silver Metallic,"101,237","$11,129 ","$10,814 ","$9,850 ",ACV
+33,,T7767P,1FMCU0HD3KUA98229,23,5/7/25,5/8/25,2019,Ford,Escape,4D Sport Utility,Lightning Blue,"102,804","$11,264 ","$11,621 ","$9,850 ",ACV
+33,,T7768P,2FMPK4K96KBB46041,24,5/9/25,5/8/25,2019,Ford,Edge,4D Sport Utility,White Platinum,"31,063","$19,200 ","$19,004 ","$18,500 ",Appraisal
+34,,7765P,1G1ZD5ST9NF104435,23,5/5/25,5/7/25,2022,Chevrolet,Malibu,4D Sedan,Black,"51,124","$16,745 ","$17,325 ","$16,000 ",Manheim
+39,,T7764P,KL4CJASB0KB712928,23,4/30/25,5/2/25,2019,Buick,Encore,4D Sport Utility,Black,"50,563","$13,765 ","$14,404 ","$12,500 ",Manheim
+40,"no,title",T7762P,KNDAEFS57R6030219,0,4/16/25,5/1/25,2024,Kia,EV9,4D Sport Utility,Iceberg Green,"8,116","$50,000 ","$50,150 ","$50,000 ",Appraisal
+43,,7761P,3LN6L2J98GR616268,24,4/23/25,4/28/25,2016,Lincoln,MKZ,4D Sedan,Magnetic Metallic,"60,294","$13,224 ","$13,791 ","$11,600 ",ACV
+48,,T7760P,1FTFW1E53KFA01369,22,4/22/25,4/23/25,2019,Ford,F-150,4D SuperCrew,White,"63,690","$28,927 ","$28,931 ","$27,200 ",Manheim
+50,,T7756P,1FM5K8GC0LGC49548,26,4/18/25,4/21/25,2020,Ford,Explorer,4D Sport Utility,Black,"88,599","$26,199 ","$27,366 ","$23,750 ",ACV
+55,,T7754P,3GNAXUEV4NL259765,22,4/14/25,4/16/25,2022,Chevrolet,Equinox,4D Sport Utility,Silver,"52,229","$20,360 ","$20,704 ","$19,200 ",Manheim
+57,,T7752P,1FMCU9H69NUB71680,23,4/9/25,4/14/25,2022,Ford,Escape,4D Sport Utility,Rapid Red Metallic Tinted Clearcoat,"17,809","$24,491 ","$24,628 ","$23,500 ",Manheim
+57,,T7751P,1FMCU9H62LUC64909,24,4/8/25,4/14/25,2020,Ford,Escape,4D Sport Utility,Agate Black Metallic,"41,238","$18,271 ","$18,588 ","$17,071 ",Appraisal
+64,wassem,T7747P,2FMPK4K96NBB07759,23,4/1/25,4/7/25,2022,Ford,Edge,4D Sport Utility,Black Metallic,"53,679","$21,074 ","$21,535 ","$20,400 ",ACV
+64,,7748P,3FA6P0D97HR147657,22,4/4/25,4/7/25,2017,Ford,Fusion,4D Sedan,White,"106,752","$9,099 ","$9,959 ","$8,100 ",ACV
+68,,T7744P,1FMCU0DZ4LUB63494,25,4/2/25,4/3/25,2020,Ford,Escape,4D Sport Utility,White,"68,562","$18,808 ","$18,813 ","$17,800 ",Manheim
+68,,T7746P,1FMJU1JT2MEA25817,24,4/1/25,4/3/25,2021,Ford,Expedition,4D Sport Utility,Silver Metallic,"75,389","$32,024 ","$32,790 ","$31,000 ",ACV
+68,,T7745P,2GNAXYEX1K6285250,23,4/1/25,4/3/25,2019,Chevrolet,Equinox,4D Sport Utility,Iridescent Pearl Tricoat,"103,868","$14,279 ","$14,573 ","$12,800 ",ACV
+70,,T7656PA,1FMCU9G95HUA73939,1,3/31/25,4/1/25,2017,Ford,Escape,4D Sport Utility,Magnetic,"104,778","$7,500 ","$6,650 ","$6,500 ",Appraisal
+71,,T7742P,1GNSKBKC6KR133650,24,3/27/25,3/31/25,2019,Chevrolet,Tahoe,4D Sport Utility,Summit White,"100,653","$26,149 ","$25,797 ","$24,425 ",ACV
+74,,7741P,1FATP8UH8P5103368,24,3/27/25,3/28/25,2023,Ford,Mustang,2D Convertible,Race Red,"52,253","$24,699 ","$25,177 ","$23,999 ",ENTERPRISE
+78,,T7738P,1C4RJFBG8KC801200,26,3/19/25,3/24/25,2019,Jeep,Grand Cherokee,4D Sport Utility,Velvet Red Pearlcoat,"94,069","$20,760 ","$20,709 ","$19,400 ",Manheim
+89,,T7733P,1FMCU9G67NUC04886,24,3/11/25,3/13/25,2022,Ford,Escape,4D Sport Utility,Oxford White,"16,478","$22,819 ","$23,195 ","$22,000 ",Manheim
+95,,T7729P,1FMSK8DH5PGB01923,25,3/6/25,3/7/25,2023,Ford,Explorer,4D Sport Utility,Agate Black Metallic,"21,487","$33,521 ","$33,610 ","$32,500 ",Manheim
+116,,T7717P,1FMSK8JH4NGA20218,26,2/13/25,2/14/25,2022,Ford,Explorer,4D Sport Utility,Stone,"43,520","$32,920 ","$33,104 ","$32,400 ",Manheim
+120,,T7715P,2FMPK4J9XNBA08718,24,2/5/25,2/10/25,2022,Ford,Edge,4D Sport Utility,Red,"44,243","$22,166 ","$23,471 ","$21,800 ",Manheim
+141,nutasha,7700P,3FA6P0HD5JR158273,23,,1/20/25,2018,Ford,Fusion,4D Sedan,Magnetic,"100,878",$335 ,"$4,486 ",,
+197,fatima,7654P,1N4BL4DV0NN390529,22,11/20/24,11/25/24,2022,Nissan,Altima,4D Sedan,Storm Blue Metallic,"61,987","$17,199 ","$17,541 ","$15,999 ",ENTERPRISE

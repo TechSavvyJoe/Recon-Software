@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Bug Fix Verification Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .pending { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-3xl font-bold text-center mb-6">🔧 Final Bug Fix Verification</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Critical Functions Test -->
+            <div class="bg-blue-50 p-4 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">🚨 Critical Functions</h2>
+                <div id="critical-tests"></div>
+                <button onclick="testCriticalFunctions()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Test Critical Functions
+                </button>
+            </div>
+
+            <!-- Window Functions Test -->
+            <div class="bg-green-50 p-4 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">🪟 Window Functions</h2>
+                <div id="window-tests"></div>
+                <button onclick="testWindowFunctions()" class="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    Test Window Functions
+                </button>
+            </div>
+
+            <!-- Data Validation Test -->
+            <div class="bg-yellow-50 p-4 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">✅ Data Validation</h2>
+                <div id="validation-tests"></div>
+                <button onclick="testDataValidation()" class="mt-4 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                    Test Data Validation
+                </button>
+            </div>
+
+            <!-- Performance Test -->
+            <div class="bg-purple-50 p-4 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">⚡ Performance & Browser</h2>
+                <div id="performance-tests"></div>
+                <button onclick="testPerformance()" class="mt-4 bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    Test Performance
+                </button>
+            </div>
+        </div>
+
+        <!-- Overall Results -->
+        <div class="mt-8 p-4 bg-gray-50 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">📊 Overall Test Results</h2>
+            <div id="overall-results" class="text-lg"></div>
+            <button onclick="runAllTests()" class="mt-4 bg-gray-800 text-white px-6 py-3 rounded hover:bg-gray-900">
+                🚀 Run All Tests
+            </button>
+        </div>
+    </div>
+
+    <!-- Load the main application -->
+    <script src="./main.js"></script>
+    
+    <script>
+        let testResults = {
+            critical: [],
+            window: [],
+            validation: [],
+            performance: []
+        };
+
+        function addTestResult(category, testName, passed, details = '') {
+            const result = { testName, passed, details };
+            testResults[category].push(result);
+            
+            const container = document.getElementById(`${category}-tests`);
+            const div = document.createElement('div');
+            div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            div.innerHTML = `
+                <strong>${testName}:</strong> ${passed ? '✅ PASS' : '❌ FAIL'}
+                ${details ? `<br><small>${details}</small>` : ''}
+            `;
+            container.appendChild(div);
+        }
+
+        function testCriticalFunctions() {
+            const container = document.getElementById('critical-tests');
+            container.innerHTML = '';
+
+            // Test basic utility functions
+            try {
+                const element = $('test-element');
+                addTestResult('critical', 'Utility Function ($)', element === null, 'DOM query utility working');
+            } catch (e) {
+                addTestResult('critical', 'Utility Function ($)', false, e.message);
+            }
+
+            // Test data loading
+            try {
+                const hasData = Array.isArray(currentVehicleData);
+                addTestResult('critical', 'Data Loading', hasData, `${currentVehicleData?.length || 0} vehicles loaded`);
+            } catch (e) {
+                addTestResult('critical', 'Data Loading', false, e.message);
+            }
+
+            // Test workflow functions
+            try {
+                const testVehicle = { 'Stock #': 'TEST', workflow: {} };
+                const workflow = getWorkflowStatus(testVehicle);
+                addTestResult('critical', 'Workflow Processing', typeof workflow === 'object', 'Workflow status generation working');
+            } catch (e) {
+                addTestResult('critical', 'Workflow Processing', false, e.message);
+            }
+
+            // Test tab switching
+            try {
+                switchTab('dashboard');
+                addTestResult('critical', 'Tab Switching', true, 'Tab switching functional');
+            } catch (e) {
+                addTestResult('critical', 'Tab Switching', false, e.message);
+            }
+        }
+
+        function testWindowFunctions() {
+            const container = document.getElementById('window-tests');
+            container.innerHTML = '';
+
+            const requiredFunctions = [
+                'showVehicleDetailModal',
+                'showAddVehicleModal', 
+                'showStatusUpdateModal',
+                'updateVehicleNotes',
+                'updateVehicleStatus',
+                'deleteVehicle',
+                'exportToCSV',
+                'toggleWorkflowStep',
+                'moveToLotReady',
+                'addDetailer',
+                'removeDetailer'
+            ];
+
+            requiredFunctions.forEach(funcName => {
+                const exists = typeof window[funcName] === 'function';
+                addTestResult('window', `window.${funcName}`, exists, 
+                    exists ? 'Function available' : 'Function missing');
+            });
+        }
+
+        function testDataValidation() {
+            const container = document.getElementById('validation-tests');
+            container.innerHTML = '';
+
+            // Test input validation
+            try {
+                if (typeof validateVehicleInput === 'function') {
+                    const errors = validateVehicleInput('', '', '', '');
+                    addTestResult('validation', 'Input Validation', errors.length > 0, `${errors.length} validation errors detected for empty inputs`);
+                } else {
+                    addTestResult('validation', 'Input Validation', false, 'validateVehicleInput function not found');
+                }
+            } catch (e) {
+                addTestResult('validation', 'Input Validation', false, e.message);
+            }
+
+            // Test data sanitization
+            try {
+                if (typeof sanitizeInput === 'function') {
+                    const result = sanitizeInput('  <script>alert("test")</script>  ');
+                    const safe = !result.includes('<script>');
+                    addTestResult('validation', 'Input Sanitization', safe, safe ? 'Scripts removed successfully' : 'Sanitization failed');
+                } else {
+                    addTestResult('validation', 'Input Sanitization', false, 'sanitizeInput function not found');
+                }
+            } catch (e) {
+                addTestResult('validation', 'Input Sanitization', false, e.message);
+            }
+
+            // Test error handling
+            try {
+                if (typeof handleError === 'function') {
+                    handleError(new Error('Test error'), 'Test Context');
+                    addTestResult('validation', 'Error Handling', true, 'Error handling function available');
+                } else {
+                    addTestResult('validation', 'Error Handling', false, 'handleError function not found');
+                }
+            } catch (e) {
+                addTestResult('validation', 'Error Handling', false, e.message);
+            }
+        }
+
+        function testPerformance() {
+            const container = document.getElementById('performance-tests');
+            container.innerHTML = '';
+
+            // Test browser compatibility
+            try {
+                if (typeof checkBrowserCompatibility === 'function') {
+                    const compatible = checkBrowserCompatibility();
+                    addTestResult('performance', 'Browser Compatibility', compatible, 
+                        compatible ? 'All features supported' : 'Some features may not work');
+                } else {
+                    addTestResult('performance', 'Browser Compatibility', false, 'checkBrowserCompatibility function not found');
+                }
+            } catch (e) {
+                addTestResult('performance', 'Browser Compatibility', false, e.message);
+            }
+
+            // Test debounce function
+            try {
+                if (typeof debounce === 'function') {
+                    const debouncedFunc = debounce(() => {}, 100);
+                    addTestResult('performance', 'Debounce Function', typeof debouncedFunc === 'function', 'Performance optimization available');
+                } else {
+                    addTestResult('performance', 'Debounce Function', false, 'debounce function not found');
+                }
+            } catch (e) {
+                addTestResult('performance', 'Debounce Function', false, e.message);
+            }
+
+            // Test search optimization
+            try {
+                if (typeof searchVehicles === 'function') {
+                    addTestResult('performance', 'Search Optimization', true, 'Optimized search function available');
+                } else {
+                    addTestResult('performance', 'Search Optimization', false, 'searchVehicles function not found');
+                }
+            } catch (e) {
+                addTestResult('performance', 'Search Optimization', false, e.message);
+            }
+
+            // Test localStorage
+            try {
+                const hasStorage = typeof Storage !== 'undefined';
+                if (hasStorage) {
+                    localStorage.setItem('test', 'test');
+                    const canWrite = localStorage.getItem('test') === 'test';
+                    localStorage.removeItem('test');
+                    addTestResult('performance', 'Local Storage', canWrite, 'Data persistence available');
+                } else {
+                    addTestResult('performance', 'Local Storage', false, 'localStorage not supported');
+                }
+            } catch (e) {
+                addTestResult('performance', 'Local Storage', false, e.message);
+            }
+        }
+
+        function runAllTests() {
+            // Reset results
+            testResults = { critical: [], window: [], validation: [], performance: [] };
+            
+            testCriticalFunctions();
+            setTimeout(() => testWindowFunctions(), 100);
+            setTimeout(() => testDataValidation(), 200);
+            setTimeout(() => testPerformance(), 300);
+            
+            setTimeout(updateOverallResults, 500);
+        }
+
+        function updateOverallResults() {
+            const container = document.getElementById('overall-results');
+            
+            let totalTests = 0;
+            let passedTests = 0;
+            
+            Object.values(testResults).forEach(category => {
+                category.forEach(result => {
+                    totalTests++;
+                    if (result.passed) passedTests++;
+                });
+            });
+            
+            const percentage = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
+            const statusColor = percentage >= 90 ? 'text-green-600' : percentage >= 70 ? 'text-yellow-600' : 'text-red-600';
+            
+            container.innerHTML = `
+                <div class="${statusColor} font-bold text-2xl">
+                    ${passedTests}/${totalTests} tests passed (${percentage}%)
+                </div>
+                <div class="mt-2">
+                    ${percentage >= 90 ? '🎉 Excellent! All critical functionality working.' : 
+                      percentage >= 70 ? '⚠️ Good! Minor issues may exist.' : 
+                      '🚨 Issues detected. Review failed tests.'}
+                </div>
+            `;
+        }
+
+        // Auto-run tests when page loads
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 1000);
+        });
+    </script>
+</body>
+</html>

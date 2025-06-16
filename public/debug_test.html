@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Recon Debug Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: #fefefe; margin: 3% auto; padding: 15px; border: 1px solid #888; width: 90%; max-width: 900px; border-radius: 0.5rem; max-height: 85vh; overflow-y: auto; }
+        .progress-bar-container { width: 100%; background-color: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden; }
+        .progress-bar-fg { height: 100%; background: linear-gradient(90deg, #3b82f6, #06b6d4); transition: width 0.3s ease; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center text-red-600">
+            🚨 Application Debug Test
+        </h1>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Debug Information</h2>
+            <div id="debug-info" class="space-y-2 text-sm font-mono">
+                <div>Loading debug information...</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Manual Test</h2>
+            <button id="test-modal" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Test Vehicle Modal
+            </button>
+            <button id="test-data" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 ml-2">
+                Test Data Loading
+            </button>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Console Errors</h2>
+            <div id="console-errors" class="text-red-600 text-sm font-mono">
+                Check browser console for errors...
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Modal -->
+    <div id="vehicle-detail-modal" class="modal">
+        <div class="modal-content">
+            <div id="vehicle-detail-content">Test Modal Content</div>
+        </div>
+    </div>
+
+    <script src="./main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const debugInfo = document.getElementById('debug-info');
+            const consoleErrors = document.getElementById('console-errors');
+            
+            // Capture console errors
+            const originalError = console.error;
+            const errors = [];
+            console.error = function(...args) {
+                errors.push(args.join(' '));
+                originalError.apply(console, args);
+                consoleErrors.innerHTML = errors.length > 0 ? errors.join('<br>') : 'No console errors detected';
+            };
+
+            // Debug information
+            setTimeout(() => {
+                debugInfo.innerHTML = `
+                    <div><strong>JavaScript loaded:</strong> ${typeof window.showVehicleDetailModal !== 'undefined' ? '✅ Yes' : '❌ No'}</div>
+                    <div><strong>Vehicle data:</strong> ${typeof currentVehicleData !== 'undefined' ? currentVehicleData.length + ' vehicles' : '❌ Not loaded'}</div>
+                    <div><strong>WORKFLOW_STEPS:</strong> ${typeof WORKFLOW_STEPS !== 'undefined' ? '✅ Defined' : '❌ Not defined'}</div>
+                    <div><strong>$ function:</strong> ${typeof $ !== 'undefined' ? '✅ Available' : '❌ Not available'}</div>
+                    <div><strong>Modal element:</strong> ${document.getElementById('vehicle-detail-modal') ? '✅ Found' : '❌ Not found'}</div>
+                `;
+            }, 1000);
+
+            // Test buttons
+            document.getElementById('test-modal').addEventListener('click', function() {
+                if (typeof window.showVehicleDetailModal === 'function') {
+                    try {
+                        window.showVehicleDetailModal('TEST123');
+                        alert('Modal function called successfully');
+                    } catch (e) {
+                        alert('Error calling modal: ' + e.message);
+                    }
+                } else {
+                    alert('showVehicleDetailModal function not found');
+                }
+            });
+
+            document.getElementById('test-data').addEventListener('click', function() {
+                if (typeof currentVehicleData !== 'undefined') {
+                    alert('Vehicle data: ' + currentVehicleData.length + ' vehicles loaded');
+                } else {
+                    alert('Vehicle data not loaded');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

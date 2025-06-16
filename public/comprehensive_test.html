@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Comprehensive Test - Vehicle Recon</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .pass { color: #28a745; }
+        .fail { color: #dc3545; }
+        .info { color: #007bff; }
+        .console-output { background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 3px; font-family: monospace; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Vehicle Recon Tracker - Comprehensive Test</h1>
+    
+    <div class="test-section">
+        <h2>1. JavaScript Loading Test</h2>
+        <div id="js-test"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. DOM Elements Test</h2>
+        <div id="dom-test"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Functions Test</h2>
+        <div id="functions-test"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Console Output</h2>
+        <div id="console-output" class="console-output"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>5. Manual Test</h2>
+        <button id="test-render" onclick="manualTest()">Test Render Functions</button>
+        <div id="manual-test-results"></div>
+    </div>
+
+    <script>
+        // Capture console output
+        const originalLog = console.log;
+        const originalError = console.error;
+        const consoleOutput = [];
+        
+        console.log = function(...args) {
+            consoleOutput.push('[LOG] ' + args.join(' '));
+            originalLog.apply(console, args);
+            updateConsoleDisplay();
+        };
+        
+        console.error = function(...args) {
+            consoleOutput.push('[ERROR] ' + args.join(' '));
+            originalError.apply(console, args);
+            updateConsoleDisplay();
+        };
+        
+        function updateConsoleDisplay() {
+            const output = document.getElementById('console-output');
+            if (output) {
+                output.textContent = consoleOutput.join('\n');
+            }
+        }
+        
+        function runTests() {
+            // 1. JavaScript Loading Test
+            const jsTest = document.getElementById('js-test');
+            let jsResults = '';
+            
+            try {
+                jsResults += `<div class="${typeof currentVehicleData !== 'undefined' ? 'pass' : 'fail'}">
+                    currentVehicleData: ${typeof currentVehicleData !== 'undefined' ? 'DEFINED' : 'UNDEFINED'}
+                </div>`;
+                
+                jsResults += `<div class="${typeof WORKFLOW_STEPS !== 'undefined' ? 'pass' : 'fail'}">
+                    WORKFLOW_STEPS: ${typeof WORKFLOW_STEPS !== 'undefined' ? 'DEFINED' : 'UNDEFINED'}
+                </div>`;
+                
+                jsResults += `<div class="${typeof $ !== 'undefined' ? 'pass' : 'fail'}">
+                    $ function: ${typeof $ !== 'undefined' ? 'DEFINED' : 'UNDEFINED'}
+                </div>`;
+                
+                if (typeof currentVehicleData !== 'undefined') {
+                    jsResults += `<div class="info">Data length: ${currentVehicleData.length}</div>`;
+                }
+            } catch (e) {
+                jsResults += `<div class="fail">Error checking variables: ${e.message}</div>`;
+            }
+            
+            jsTest.innerHTML = jsResults;
+            
+            // 2. DOM Elements Test
+            const domTest = document.getElementById('dom-test');
+            const requiredElements = [
+                'dashboard-content', 'workflow-content', 'inventory-content', 
+                'reports-content', 'upload-content', 'detailers-content',
+                'vehicle-timeline-modal', 'add-vehicle-modal', 'message-modal'
+            ];
+            
+            let domResults = '';
+            requiredElements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                domResults += `<div class="${element ? 'pass' : 'fail'}">
+                    #${elementId}: ${element ? 'FOUND' : 'MISSING'}
+                </div>`;
+            });
+            
+            domTest.innerHTML = domResults;
+            
+            // 3. Functions Test
+            const functionsTest = document.getElementById('functions-test');
+            const requiredFunctions = [
+                'renderDashboard', 'renderInventory', 'renderWorkflow',
+                'switchTab', 'window.showVehicleDetailModal', 'window.showAddVehicleModal'
+            ];
+            
+            let functionsResults = '';
+            requiredFunctions.forEach(funcName => {
+                try {
+                    const func = eval(funcName);
+                    functionsResults += `<div class="${typeof func === 'function' ? 'pass' : 'fail'}">
+                        ${funcName}: ${typeof func === 'function' ? 'FUNCTION' : 'NOT FUNCTION'}
+                    </div>`;
+                } catch (e) {
+                    functionsResults += `<div class="fail">
+                        ${funcName}: ERROR - ${e.message}
+                    </div>`;
+                }
+            });
+            
+            functionsTest.innerHTML = functionsResults;
+        }
+        
+        function manualTest() {
+            const results = document.getElementById('manual-test-results');
+            let output = '';
+            
+            try {
+                if (typeof renderDashboard === 'function') {
+                    output += '<div class="info">Attempting to call renderDashboard()...</div>';
+                    renderDashboard();
+                    output += '<div class="pass">renderDashboard() executed successfully</div>';
+                } else {
+                    output += '<div class="fail">renderDashboard() is not available</div>';
+                }
+            } catch (e) {
+                output += `<div class="fail">renderDashboard() failed: ${e.message}</div>`;
+            }
+            
+            try {
+                if (typeof switchTab === 'function') {
+                    output += '<div class="info">Attempting to call switchTab("dashboard")...</div>';
+                    switchTab('dashboard');
+                    output += '<div class="pass">switchTab() executed successfully</div>';
+                } else {
+                    output += '<div class="fail">switchTab() is not available</div>';
+                }
+            } catch (e) {
+                output += `<div class="fail">switchTab() failed: ${e.message}</div>`;
+            }
+            
+            results.innerHTML = output;
+        }
+        
+        // Run tests after DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runTests, 1000); // Wait for main.js to fully load
+        });
+    </script>
+    
+    <!-- Load the main application JavaScript -->
+    <script src="main.js"></script>
+</body>
+</html>

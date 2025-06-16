@@ -1,0 +1,2728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Reconditioning Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js" onerror="console.error('DIRECT SCRIPT LOAD ERROR: PapaParse failed to load from jsdelivr CDN via script tag onerror event.');"></script> 
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 750px; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        .dashboard-vehicle-card { 
+            cursor: pointer; 
+            padding: 1rem; 
+            border: 1px solid #e2e8f0; /* gray-300 */
+            background-color: white;
+            transition: box-shadow 0.3s ease-in-out, transform 0.2s ease-in-out;
+        } 
+        .dashboard-vehicle-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+        .dashboard-vehicle-card h4 {
+            font-size: 1rem; 
+            font-weight: 600;
+            color: #1d4ed8; /* blue-700 */
+        }
+        .dashboard-vehicle-card p, .dashboard-vehicle-card .text-xs {
+            font-size: 0.8rem; 
+            line-height: 1.4; 
+        }
+        #dashboard-vehicle-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Slightly wider cards */
+            gap: 1.5rem;
+        }
+
+        .disabled-button { 
+            cursor: not-allowed !important; 
+            background-color: #9ca3af !important; /* gray-400 */
+            opacity: 0.7 !important; 
+        }
+        .chart-container { position: relative; height: 320px; width: 100%; max-height: 45vh; } /* Increased height */
+        .modal-content { max-height: 90vh; overflow-y: auto; }
+
+        .progress-bar-container {
+            position: relative;
+            width: 100%;
+            background-color: #e5e7eb; /* gray-200 */
+            border-radius: 9999px; /* pill shape */
+            height: 1.25rem; /* h-5 */
+            overflow: hidden; /* Ensure text stays within rounded corners */
+        }
+        .progress-bar-fg { 
+            background-color: #3b82f6; /* blue-500 */
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .progress-bar-text {
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 500;
+            padding: 0 0.5rem;
+            white-space: nowrap;
+        }
+
+
+        .action-button {
+            display: inline-flex; /* Align icon and text nicely */
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            text-align: center;
+            padding: 0.75rem 1.25rem; 
+            margin-bottom: 0.5rem;
+            border-radius: 0.375rem; /* rounded-md */
+            transition: all 0.2s ease-in-out;
+            font-weight: 500; 
+            border: 1px solid transparent;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+        }
+        .action-button:hover {
+             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+             transform: translateY(-1px);
+        }
+        .action-button-primary {
+            background-color: #2563eb; /* blue-600 */
+            color: white;
+        }
+        .action-button-primary:hover {
+            background-color: #1d4ed8; /* blue-700 */
+        }
+        .action-button-secondary {
+            background-color: #f3f4f6; /* gray-100 */
+            color: #374151; /* gray-700 */
+            border-color: #d1d5db; /* gray-300 */
+        }
+        .action-button-secondary:hover {
+            background-color: #e5e7eb; /* gray-200 */
+            border-color: #9ca3af; /* gray-400 */
+        }
+         .action-button-completed {
+            background-color: #dcfce7; /* green-100 */
+            color: #166534; /* green-800 */
+            border-left: 4px solid #22c55e; /* green-500 */
+            cursor: default;
+            text-align: left;
+            box-shadow: none;
+        }
+        .action-button-completed:hover { transform: none; }
+
+        .status-history-item {
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb; /* gray-200 */
+            border-radius: 0.375rem; /* rounded-md */
+            margin-bottom: 0.5rem;
+            background-color: #f9fafb; /* gray-50 */
+            position: relative; /* For absolute positioning of border if needed */
+            padding-left: 1.25rem; /* Space for the colored border */
+        }
+        .status-history-item:last-child {
+            margin-bottom: 0;
+        }
+        .status-history-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: #1f2937; /* gray-800 */
+        }
+        .status-history-body {
+            font-size: 0.8rem;
+            color: #4b5563; /* gray-600 */
+            margin-top: 0.25rem;
+            padding-left: 1.75rem; /* Align with icon */
+        }
+        .status-history-body p { margin-bottom: 0.25rem; }
+
+
+        .dashboard-timeline-entry {
+            font-size: 0.75rem; /* Smaller for dashboard card */
+            padding-left: 0.5rem;
+            border-left: 2px solid #d1d5db; /* gray-300 */
+            margin-left: 0.25rem;
+            margin-bottom: 0.375rem;
+            color: #4b5563; /* gray-600 */
+        }
+         .dashboard-timeline-entry strong {
+            color: #111827; /* gray-900 */
+         }
+         .dashboard-timeline-entry .fas { /* Icon styling for dashboard card */
+            margin-right: 0.375rem;
+            /* color: #6b7280; gray-500 - colors will be set by specific classes */
+         }
+
+
+        th.sortable { cursor: pointer; }
+        th.sortable:hover { background-color: #3b82f6; /* Tailwind's blue-500 */ }
+        th .sort-arrow { margin-left: 5px; }
+        .pending-task-badge {
+            display: inline-flex; /* For icon alignment */
+            align-items: center;
+            padding: 0.2rem 0.6rem;
+            margin-right: 0.25rem;
+            margin-bottom: 0.25rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+            border-radius: 0.25rem;
+        }
+        .pending-task-badge .fas { margin-right: 0.25rem; }
+
+        .pending-mechanical { background-color: #fef3c7; color: #92400e; } /* yellow-100, yellow-700 */
+        .pending-detailing { background-color: #f3e8ff; color: #6b21a8; } /* purple-100, purple-700 */
+        .pending-photos { background-color: #ffe4e6; color: #be123c; } /* pink-100, pink-700 */
+        .pending-title { background-color: #e0e7ff; color: #4338ca; } /* indigo-100, indigo-700 */
+        #inventory-table-body tr { cursor: pointer; }
+
+        /* Workflow View Styles */
+        .workflow-board {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding-bottom: 1rem; /* For scrollbar */
+            min-height: 60vh;
+        }
+        .workflow-column {
+            background-color: #f3f4f6; /* gray-100 */
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-width: 300px;
+            flex-shrink: 0;
+            height: fit-content; /* Ensure column height adjusts to content */
+        }
+        .workflow-column-header {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1f2937; /* gray-800 */
+        }
+        .workflow-column-header span {
+            font-size: 0.875rem;
+            font-weight: 400;
+            color: #4b5563; /* gray-600 */
+        }
+        .workflow-vehicle-card {
+            background-color: white;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            cursor: grab; /* Indicate draggable */
+        }
+         .workflow-vehicle-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .workflow-vehicle-card h5 {
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500; /* medium */
+            color: #1e40af;
+        }
+        .workflow-vehicle-card p {
+            font-size: 0.75rem; /* text-xs */
+            color: #4b5563; /* gray-600 */
+            margin-bottom: 0.25rem;
+        }
+        .drag-over {
+            border: 2px dashed #3b82f6; /* blue-500 */
+            background-color: #eff6ff; /* blue-50 */
+        }
+        .multi-select-filter label { margin-right: 10px; font-size: 0.875rem;}
+        .multi-select-filter input[type="checkbox"] { margin-right: 4px; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="container mx-auto p-4">
+        <header class="bg-sky-700 text-white p-6 rounded-lg shadow-md mb-6">
+            <h1 class="text-3xl font-bold">Vehicle Reconditioning Workflow Tracker</h1>
+        </header>
+
+        <div class="mb-6 bg-white p-3 rounded-lg shadow">
+            <nav class="flex flex-wrap space-x-2 sm:space-x-4" id="tabs">
+                <button data-tab="dashboard" class="tab-button py-2 px-4 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition">Dashboard</button>
+                <button data-tab="workflow" class="tab-button py-2 px-4 bg-gray-200 hover:bg-gray-300 rounded-md transition">Workflow</button>
+                <button data-tab="reports" class="tab-button py-2 px-4 bg-gray-200 hover:bg-gray-300 rounded-md transition">Reports</button>
+                <button data-tab="inventory" class="tab-button py-2 px-4 bg-gray-200 hover:bg-gray-300 rounded-md transition">Inventory</button>
+                <button data-tab="upload" class="tab-button py-2 px-4 bg-gray-200 hover:bg-gray-300 rounded-md transition">Upload Data</button>
+            </nav>
+        </div>
+
+        <main id="tab-content-area">
+            <div id="dashboard-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <div class="flex flex-wrap gap-4 mb-2 items-center">
+                    <h2 class="text-2xl font-semibold">Active Reconditioning Overview</h2>
+                    <input type="text" id="dashboard-search" placeholder="Search VIN, Stock#, Make, Model..." class="p-2 border rounded-md flex-grow min-w-[200px] sm:min-w-[300px]">
+                    <div class="flex items-center space-x-2">
+                        <label for="dashboard-status-filter" class="text-sm font-medium">Filter by Status:</label>
+                        <select id="dashboard-status-filter" class="p-2 border rounded-md">
+                            <option value="">All Active</option>
+                            <option value="needs_attention">Needs Attention (Any Stage)</option>
+                            </select>
+                    </div>
+                </div>
+                <div id="dashboard-multiselect-filter-area" class="multi-select-filter mb-4 p-3 border rounded-md bg-gray-50 flex flex-wrap gap-x-4 gap-y-2">
+                    <span class="font-medium text-sm mr-2">And Pending:</span>
+                    <label><input type="checkbox" data-filter-type="mechanical"> Mech</label>
+                    <label><input type="checkbox" data-filter-type="detailing"> Detail</label>
+                    <label><input type="checkbox" data-filter-type="photos"> Photos</label>
+                    <label><input type="checkbox" data-filter-type="title"> Title</label>
+                </div>
+                <div id="dashboard-vehicle-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"> 
+                    </div>
+            </div>
+
+             <div id="workflow-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <h2 class="text-2xl font-semibold mb-4">Reconditioning Workflow Board</h2>
+                <div id="workflow-board-container" class="workflow-board">
+                    <!-- Columns will be populated by JS -->
+                </div>
+            </div>
+
+            <div id="reports-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <h2 class="text-2xl font-semibold mb-4">Recon Reports & Metrics</h2>
+                <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                    <div class="p-4 bg-sky-50 rounded-lg shadow">
+                        <h4 class="text-md font-semibold text-sky-700">Avg. Total Recon Time</h4>
+                        <p id="avgTotalReconTime" class="text-2xl font-bold text-sky-600">N/A</p>
+                        <p class="text-xs text-gray-500">(New Arrival to Lot Ready)</p>
+                    </div>
+                    <div class="p-4 bg-pink-50 rounded-lg shadow">
+                        <h4 class="text-md font-semibold text-pink-700">Avg. Photo Cycle Time</h4>
+                        <p id="avgPhotoCycleTime" class="text-2xl font-bold text-pink-600">N/A</p>
+                        <p class="text-xs text-gray-500">(Photos Start to Photos Taken)</p>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-lg shadow">
+                        <h4 class="text-md font-semibold text-green-700">Avg. Time to Frontline</h4>
+                        <p id="avgTimeToFrontline" class="text-2xl font-bold text-green-600">N/A</p>
+                        <p class="text-xs text-gray-500">(New Arrival to Lot Ready)</p>
+                    </div>
+                </div>
+
+                 <div class="mb-8 p-4 border rounded-lg">
+                    <h3 class="text-xl font-semibold mb-3">Mechanical Service Cycle Time</h3>
+                    <div id="mechanical-cycle-time-area" class="overflow-x-auto">
+                        <p class="text-gray-500">No mechanical data available yet.</p>
+                    </div>
+                </div>
+                
+                <div class="mb-8 p-4 border rounded-lg">
+                    <h3 class="text-xl font-semibold mb-3">Vehicles Needing Photos (Detailing Complete)</h3>
+                    <div id="vehicles-needing-photos-area" class="overflow-x-auto">
+                        <p class="text-gray-500">No vehicles currently needing photos or data not loaded.</p>
+                    </div>
+                </div>
+
+                <div class="mb-8 p-4 border rounded-lg">
+                    <h3 class="text-xl font-semibold mb-3">Stage Bottleneck Analysis</h3>
+                    <div id="stage-bottleneck-area">
+                        <p class="text-gray-500">No data available to analyze bottlenecks yet.</p>
+                    </div>
+                </div>
+
+                <div class="mb-8 p-4 border rounded-lg">
+                    <h3 class="text-xl font-semibold mb-3">Detailer Performance</h3>
+                    <div id="detailer-performance-area" class="space-y-2">
+                        <p class="text-gray-500">No detailing data available yet.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="chart-container">
+                        <h3 class="text-xl font-medium mb-2">Workflow Status Distribution</h3>
+                        <canvas id="reportsWorkflowStatusChart" class="rounded-lg shadow-sm"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="text-xl font-medium mb-2">Average Time per Stage (Days)</h3>
+                        <canvas id="reportsAvgTimePerStageChart" class="rounded-lg shadow-sm"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="text-xl font-medium mb-2">Photo Status</h3>
+                        <canvas id="reportsPhotoStatusChart" class="rounded-lg shadow-sm"></canvas>
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="inventory-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <h2 class="text-2xl font-semibold mb-4">Vehicle Inventory</h2>
+                <div class="flex flex-wrap gap-4 mb-2 items-center">
+                    <input type="text" id="inventory-search" placeholder="Search VIN, Stock#, Make, Model..." class="p-2 border rounded-md flex-grow min-w-[200px]">
+                    <div class="flex items-center space-x-2">
+                        <label for="inventory-view-filter" class="text-sm font-medium">View:</label>
+                        <select id="inventory-view-filter" class="p-2 border rounded-md">
+                            <option value="active">Active Recon</option>
+                            <option value="needs_attention">Needs Attention (Any Stage)</option>
+                            <option value="lot_ready">Lot Ready</option>
+                            <option value="sold">Sold</option>
+                            <option value="all">All Vehicles</option>
+                        </select>
+                    </div>
+                     <button id="export-csv-button" class="py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition">Export to CSV</button>
+                </div>
+                 <div id="inventory-multiselect-filter-area" class="multi-select-filter mb-4 p-3 border rounded-md bg-gray-50 flex flex-wrap gap-x-4 gap-y-2">
+                    <span class="font-medium text-sm mr-2">And Pending:</span>
+                    <label><input type="checkbox" data-filter-type="mechanical"> Mech</label>
+                    <label><input type="checkbox" data-filter-type="detailing"> Detail</label>
+                    <label><input type="checkbox" data-filter-type="photos"> Photos</label>
+                    <label><input type="checkbox" data-filter-type="title"> Title</label>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border">
+                        <thead class="bg-sky-600 text-white">
+                            <tr>
+                                <th class="py-2 px-3 text-left sortable" data-sort="stockNumber">Stock# <span class="sort-arrow"></span></th>
+                                <th class="py-2 px-3 text-left sortable" data-sort="vin">VIN <span class="sort-arrow"></span></th>
+                                <th class="py-2 px-3 text-left sortable" data-sort="vehicle">Vehicle <span class="sort-arrow"></span></th>
+                                <th class="py-2 px-3 text-left sortable" data-sort="ageInInventory">Age <span class="sort-arrow"></span></th>
+                                <th class="py-2 px-3 text-left sortable" data-sort="acquisitionType">Acq. Type <span class="sort-arrow"></span></th>
+                                <th class="py-2 px-3 text-left sortable" data-sort="currentReconStatus">Status <span class="sort-arrow"></span></th>
+                                <th class="py-2 px-3 text-left">Photos</th>
+                                <th class="py-2 px-3 text-left sortable" data-sort="titleInHouse">Title <span class="sort-arrow"></span></th>
+                                <th class="py-2 px-3 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="upload-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <h2 class="text-2xl font-semibold mb-4">Upload & Sync Data</h2>
+                <div id="csv-library-status" class="mb-4 p-3 rounded-md text-sm"></div>
+                
+                <div class="mb-6 pb-6 border-b">
+                    <h3 class="text-lg font-semibold mb-2">Upload CSV File</h3>
+                    <p class="mb-2 text-sm text-gray-600">Upload a CSV file with vehicle inventory.</p>
+                    <input type="file" id="csv-file-input" accept=".csv" class="mb-4 p-2 border rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
+                    <button id="upload-csv-button" class="py-2 px-4 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition">Upload and Process CSV</button>
+                    <div id="upload-status" class="mt-4"></div>
+                </div>
+
+                <div class="mb-6 pb-6 border-b">
+                    <h3 class="text-lg font-semibold mb-2">Sync from Google Sheet</h3>
+                    <p class="mb-2 text-sm text-gray-600">Sync inventory from the pre-configured Google Sheet. New vehicles will be added and existing ones updated (based on VIN/Stock#). Vehicles *not* present in the sheet will be removed from this tracker if they were previously synced from a sheet.</p>
+                    <button id="sync-google-sheet-button" class="py-2 px-4 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition">Sync from Google Sheet</button>
+                    <button id="refresh-google-sheet-button" class="ml-2 py-2 px-4 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition">Refresh Synced Data</button>
+                    <div id="google-sheet-sync-status" class="mt-4"></div>
+                </div>
+                
+                <div class="mb-6 pb-6 border-b">
+                    <h3 class="text-lg font-semibold mb-2">Manage Detailers</h3>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="new-detailer-name" placeholder="Enter detailer name" class="p-2 border rounded-md flex-grow">
+                        <button id="add-detailer-button" class="py-2 px-4 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition">Add Detailer</button>
+                    </div>
+                    <div id="detailer-list" class="text-sm space-y-1">
+                        <p class="text-gray-500">No detailers configured yet.</p>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-xl font-semibold mb-2">Sample CSV Structure (for direct upload):</h3>
+                    <pre class="bg-gray-50 p-3 rounded-md text-xs overflow-x-auto">Stock#,VIN,Year,Make,Model,Recon Status,Recon Cost,Notes,Inventory Date,Acquisition Type,Ext. Color,Int. Color,Mileage
+1001,VIN123,2022,Ford,F-150,New Arrival,0,Needs inspection,2023-10-01,Trade-In,Blue,Black,15000
+1002,VIN456,2021,Toyota,Camry,Mechanical,50,Engine check,2023-10-05,Auction,Red,Gray,30000
+...
+                    </pre>
+                     <p class="text-xs mt-1">Note: `Recon Status` from CSV is for initial import reference only; current status is managed by the app.</p>
+                </div>
+            </div>
+        </main>
+
+        <div id="vehicle-detail-modal" class="modal">
+            <div class="modal-content relative">
+                <span class="close-modal absolute top-4 right-6 text-2xl font-bold cursor-pointer">&times;</span>
+                <h3 class="text-2xl font-semibold mb-1" id="modal-vehicle-title">Vehicle Details</h3>
+                <div id="modal-vehicle-info" class="mb-3 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-sm border-b pb-3"></div>
+                
+                <div id="modal-action-area" class="mt-3">
+                    <div id="modal-email-request-area" class="mb-3">
+                        </div>
+                    
+                    <h4 class="text-lg font-semibold mb-2">Reconditioning Progress & Actions</h4>
+                    <div id="modal-interactive-actions" class="space-y-2 mb-4">
+                        <!-- Action buttons will be populated here -->
+                    </div>
+
+                    <div id="modal-status-update-form-area" class="hidden mt-4 p-4 border rounded-md bg-gray-50">
+                        <h5 id="modal-updating-to-status-label" class="text-md font-semibold mb-3">Complete [Previous Stage] & Move to [New Stage]</h5>
+                        
+                        <div id="modal-mechanical-cost-fields" class="hidden space-y-2 mb-3">
+                            <div>
+                                <label for="modal-mechanical-cost" class="block text-xs font-medium text-gray-700">Mechanical Service Costs ($) (Optional):</label>
+                                <input type="number" id="modal-mechanical-cost" placeholder="0.00" class="mt-1 block w-full p-2 text-xs border border-gray-300 rounded-md shadow-sm">
+                            </div>
+                        </div>
+
+                        <div id="modal-quality-review-fields" class="hidden space-y-2 mb-3">
+                             <p class="text-sm font-medium text-gray-800">Detailing Quality Review (Required):</p>
+                             <div>
+                                <label for="modal-detailer-name" class="block text-xs font-medium text-gray-700">Detailer Name:</label>
+                                <select id="modal-detailer-name" class="mt-1 block w-full p-2 text-xs border border-gray-300 rounded-md shadow-sm">
+                                    <option value="">Select Detailer</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label for="modal-interior-quality" class="block text-xs font-medium text-gray-700">Interior Quality (1-5):</label>
+                                    <select id="modal-interior-quality" class="mt-1 block w-full p-2 text-xs border border-gray-300 rounded-md shadow-sm">
+                                        <option value="">N/A</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="modal-exterior-quality" class="block text-xs font-medium text-gray-700">Exterior Quality (1-5):</label>
+                                    <select id="modal-exterior-quality" class="mt-1 block w-full p-2 text-xs border border-gray-300 rounded-md shadow-sm">
+                                        <option value="">N/A</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="modal-notes-input" class="block text-xs font-medium text-gray-700">Notes for <span id="previous-status-note-label"></span> (optional):</label>
+                            <textarea id="modal-notes-input" rows="2" class="mt-1 block w-full p-2 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500"></textarea>
+                        </div>
+                        <button id="modal-confirm-status-update-button" class="mt-3 py-2 px-4 bg-sky-500 text-white text-sm rounded-md hover:bg-sky-600 transition">Confirm Action</button>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2">Photo Status</h4>
+                        <div class="flex items-center space-x-3">
+                            <select id="modal-photo-status-select" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                                <option value="Not Taken">Not Taken</option> 
+                                <option value="Taken">Taken</option> 
+                            </select>
+                            <button id="modal-update-photo-status-button" class="py-2 px-4 bg-purple-500 text-white text-sm rounded-md hover:bg-purple-600 transition">Update</button>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2">Title Status</h4>
+                        <div class="flex items-center mt-1">
+                            <input id="modal-title-inhouse-checkbox" type="checkbox" class="h-4 w-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500">
+                            <label for="modal-title-inhouse-checkbox" class="ml-2 block text-sm text-gray-900">Title In-House?</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="modal-email-log" class="mt-4 text-xs text-gray-500"></div>
+                 <hr class="my-4">
+                 <div id="modal-status-history-display" class="mt-4">
+                    <h4 class="text-lg font-semibold mb-2">Status History Log</h4>
+                    <div class="max-h-60 overflow-y-auto border rounded-md p-3 space-y-1 bg-gray-50">
+                        <!-- History log populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="message-modal" class="modal">
+            <div class="modal-content w-full max-w-md"> <!-- Responsive width -->
+                 <span class="close-message-modal absolute top-2 right-4 text-xl font-bold cursor-pointer hover:text-red-500">&times;</span>
+                <h3 id="message-modal-title" class="text-xl font-semibold mb-3">Notification</h3>
+                <p id="message-modal-text" class="text-sm"></p>
+                <button id="message-modal-ok-button" class="mt-4 py-2 px-4 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition w-full sm:w-auto">OK</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        // Firebase SDKs
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, writeBatch, serverTimestamp, setLogLevel, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Global Variables and Configuration ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-recon-app';
+        
+        let db, auth, userId, isAuthReady = false;
+        let currentVehicleData = []; 
+        let activeVehicleId = null; 
+        let statusToUpdateTo = null; 
+        let stageBeingCompletedForForm = null; 
+        let detailerNames = [];
+        let draggedItemId = null; // Stores the ID of the item being dragged globally for reference in dragend
+        let lastSyncedSheetIdentifiers = new Set(); // To track vehicles from the last sheet sync for removal logic
+
+        const RECON_STATUSES = [ 
+            "New Arrival", "Mechanical", "Detailing", "Photos", "Lot Ready", "Sold"
+        ];
+        const WORKFLOW_COLUMNS_ORDER = ["New Arrival", "Mechanical", "Detailing", "Photos", "Lot Ready"];
+
+
+        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vShuNsL67l-E9e2szUNtQ6Xo5H5B3zQKuPusaOgcK-sigasM3MLBDKuutxJj1oBCt7pxs0Mur2i93vy/pub?gid=639386898&single=true&output=csv';
+        const SETTINGS_DOC_ID = "reconAppSettings"; 
+
+        // --- Utility Functions ---
+        function populateStatusFilter(selectElementId, includeAllOption = true, excludeStatuses = []) {
+            const filterSelect = document.getElementById(selectElementId);
+            if (!filterSelect) {
+                return; 
+            }
+            const currentVal = filterSelect.value; 
+            
+            let preservedOptions = [];
+            if (selectElementId === 'dashboard-status-filter') {
+                if (filterSelect.options[0] && filterSelect.options[0].value === "") preservedOptions.push(filterSelect.options[0].cloneNode(true));
+                if (filterSelect.options[1] && filterSelect.options[1].value === "needs_attention") preservedOptions.push(filterSelect.options[1].cloneNode(true));
+            } else if (includeAllOption && filterSelect.options[0] && filterSelect.options[0].value === ""){
+                 preservedOptions.push(filterSelect.options[0].cloneNode(true));
+            }
+            filterSelect.innerHTML = ''; 
+            preservedOptions.forEach(opt => filterSelect.appendChild(opt));
+
+
+            RECON_STATUSES.filter(status => !excludeStatuses.includes(status)).forEach(status => {
+                if (!preservedOptions.some(opt => opt.value === status)) {
+                    const option = document.createElement('option');
+                    option.value = status;
+                    option.textContent = status;
+                    filterSelect.appendChild(option);
+                }
+            });
+            filterSelect.value = currentVal; 
+        }
+        
+        function hasStartedStage(vehicle, stageName) {
+            if (!vehicle || !vehicle.statusHistory) return false;
+            return vehicle.statusHistory.some(entry => entry.status === stageName && entry.notes?.toLowerCase().includes("started"));
+        }
+
+        function isStageCompleted(vehicle, stageName) {
+            if (!vehicle || !vehicle.statusHistory) return false;
+            if (stageName === "Mechanical") {
+                return vehicle.statusHistory.some(entry => entry.status === "Mechanical" && entry.mechanicalCost !== undefined && entry.notes?.toLowerCase().includes("completed"));
+            }
+            if (stageName === "Detailing") {
+                return vehicle.statusHistory.some(entry => entry.status === "Detailing" && entry.detailer && entry.interiorQuality && entry.exteriorQuality && entry.notes?.toLowerCase().includes("completed"));
+            }
+            if (stageName === "Photos") { 
+                return vehicle.photoStatus === "Taken";
+            }
+            if (stageName === "New Arrival") { // Considered 'completed' if moved past, or explicitly completed
+                 return RECON_STATUSES.indexOf(vehicle.currentReconStatus) > RECON_STATUSES.indexOf("New Arrival") || 
+                        vehicle.statusHistory.some(entry => entry.status === "New Arrival" && entry.notes?.toLowerCase().includes("completed"));
+            }
+            return false; 
+        }
+
+
+        // --- Firebase Initialization and Auth ---
+        async function initializeFirebase() {
+            if (!firebaseConfig) {
+                console.error("Firebase config is not available.");
+                showMessageModal("Error", "Firebase configuration is missing. App cannot connect to database.");
+                return;
+            }
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('debug'); 
+
+                await setPersistence(auth, browserLocalPersistence); 
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        isAuthReady = true;
+                        console.log("User authenticated:", userId);
+                        await loadDetailerNames(); 
+                        loadInitialData(); // This will trigger UI updates via onSnapshot
+                        triggerGoogleSheetSync(true); // Auto-sync on initial load (silent: true)
+                    } else {
+                        console.log("No user found, attempting sign-in.");
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            try {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                                console.log("Signed in with custom token.");
+                            } catch (error) {
+                                console.error("Custom token sign-in error, trying anonymous:", error);
+                                await signInAnonymously(auth);
+                                console.log("Signed in anonymously after custom token failure.");
+                            }
+                        } else {
+                            await signInAnonymously(auth);
+                            console.log("Signed in anonymously.");
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase initialization error:", error);
+                showMessageModal("Firebase Error", `Could not initialize Firebase: ${error.message}. Please check console.`);
+            }
+        }
+        
+        // --- Data Loading and Firestore Interaction ---
+        function getVehiclesCollectionRef() {
+            if (!db || !userId) {
+                console.error("DB or UserID not initialized for collection ref.");
+                return null;
+            }
+            return collection(db, `artifacts/${appId}/users/${userId}/recon_vehicles`);
+        }
+        function getSettingsDocRef() {
+             if (!db || !userId) {
+                console.error("DB or UserID not initialized for settings doc ref.");
+                return null;
+            }
+            return doc(db, `artifacts/${appId}/users/${userId}/recon_settings`, SETTINGS_DOC_ID);
+        }
+
+
+        async function loadInitialData() {
+            if (!isAuthReady || !db || !userId) {
+                console.log("Auth not ready or DB/UserID not set, deferring data load.");
+                return;
+            }
+            console.log("Loading initial data from Firestore...");
+            const vehiclesColRef = getVehiclesCollectionRef();
+            if (!vehiclesColRef) return;
+
+            // Setup Firestore listener for real-time updates
+            onSnapshot(query(vehiclesColRef), (snapshot) => {
+                currentVehicleData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), firestoreDocId: doc.id })); 
+                console.log("Vehicle data updated from Firestore snapshot:", currentVehicleData.length, "vehicles");
+                // Refresh all relevant UI parts whenever data changes
+                populateInventoryTable();
+                updateDashboardView(); 
+                updateWorkflowBoardView();
+                updateReportsCharts(); 
+                
+                // Ensure dashboard status filter is correctly populated after data load/update
+                const dashFilter = document.getElementById('dashboard-status-filter');
+                if(dashFilter) {
+                    const needsAttentionOption = dashFilter.querySelector('option[value="needs_attention"]');
+                    if (!needsAttentionOption) { // Add if missing
+                        const opt = document.createElement('option');
+                        opt.value = "needs_attention";
+                        opt.textContent = "Needs Attention (Any Stage)";
+                        const allActiveOpt = dashFilter.querySelector('option[value=""]');
+                        if (allActiveOpt && allActiveOpt.nextSibling) {
+                            dashFilter.insertBefore(opt, allActiveOpt.nextSibling);
+                        } else if (allActiveOpt) {
+                            dashFilter.appendChild(opt);
+                        } else {
+                            dashFilter.insertBefore(opt, dashFilter.firstChild);
+                        }
+                    }
+                    // Repopulate to ensure correct options based on current RECON_STATUSES, excluding Sold
+                    populateStatusFilter('dashboard-status-filter', true, ['Sold']); 
+                }
+            }, (error) => {
+                console.error("Error listening to vehicle collection:", error);
+                showMessageModal("Data Error", `Failed to load vehicle data: ${error.message}`);
+            });
+        }
+
+        // --- CSV/Google Sheet Processing ---
+        async function processImportedData(data, sourceName, isInitialSync = false) {
+            const uploadStatusDiv = sourceName === 'CSV' ? document.getElementById('upload-status') : document.getElementById('google-sheet-sync-status');
+            
+            const vehiclesFromSheet = data.map(row => mapCsvRowToVehicle(row));
+            if (vehiclesFromSheet.length === 0 && sourceName === 'Google Sheet' && !isInitialSync) {
+                uploadStatusDiv.textContent = `No valid vehicle data found in ${sourceName}. No changes made if this was not the first sync.`;
+                uploadStatusDiv.className = 'mt-4 text-yellow-500';
+                return;
+            }
+             if (vehiclesFromSheet.length === 0 && sourceName === 'CSV'){
+                uploadStatusDiv.textContent = `No valid vehicle data found in ${sourceName}.`;
+                uploadStatusDiv.className = 'mt-4 text-yellow-500';
+                return;
+            }
+
+
+            try {
+                const vehiclesColRef = getVehiclesCollectionRef();
+                if (!vehiclesColRef) {
+                    showMessageModal("Error", "Cannot get vehicles collection reference.");
+                    uploadStatusDiv.textContent = 'Error: Database not ready.';
+                    uploadStatusDiv.className = 'mt-4 text-red-500';
+                    return;
+                }
+
+                const batch = writeBatch(db);
+                let processedCount = 0;
+                let addedCount = 0;
+                let updatedCount = 0;
+                const currentSheetIdentifiers = new Set(); // VINs or Stock# from the current sheet import
+
+                for (const vehicle of vehiclesFromSheet) {
+                    if (vehicle.vin || vehicle.stockNumber) { 
+                        // Prioritize VIN for ID, fallback to Stock# if VIN is missing
+                        const identifier = vehicle.vin || `stock_${vehicle.stockNumber}`;
+                        const docId = identifier.replace(/[\.#$\[\]\/]/g, "_"); // Sanitize for Firestore ID
+                        
+                        currentSheetIdentifiers.add(docId);
+                        const docRef = doc(vehiclesColRef, docId);
+                        
+                        const existingVehicleSnap = await getDoc(docRef);
+                        if (existingVehicleSnap.exists()) {
+                            const existingData = existingVehicleSnap.data();
+                            const updatePayload = { ...vehicle }; // Start with all sheet data
+
+                            // Preserve app-managed fields from Firestore, only update from sheet if sheet is "newer" or field is non-critical
+                            // For simplicity, we will preserve most operational data from Firestore unless explicitly overridden by sheet design
+                            updatePayload.currentReconStatus = existingData.currentReconStatus || vehicle.currentReconStatus;
+                            updatePayload.statusHistory = existingData.statusHistory && existingData.statusHistory.length > 0 ? existingData.statusHistory : vehicle.statusHistory;
+                            updatePayload.totalReconCost = existingData.totalReconCost || vehicle.totalReconCost; // Costs likely managed in-app
+                            updatePayload.photoStatus = existingData.photoStatus || vehicle.photoStatus;
+                            updatePayload.photoDate = existingData.photoDate || vehicle.photoDate;
+                            updatePayload.titleInHouse = existingData.titleInHouse !== undefined ? existingData.titleInHouse : vehicle.titleInHouse;
+                            updatePayload.qualityReview = existingData.qualityReview || vehicle.qualityReview;
+                            updatePayload.reconCompleteDate = existingData.reconCompleteDate || vehicle.reconCompleteDate;
+                            updatePayload.retailDate = existingData.retailDate || vehicle.retailDate;
+                            
+                            // Always update lastUpdated from server
+                            updatePayload.lastUpdated = serverTimestamp();
+
+                            batch.set(docRef, updatePayload, { merge: true }); 
+                            updatedCount++;
+                        } else {
+                            // New vehicle, set all fields from mapped CSV data
+                            vehicle.lastUpdated = serverTimestamp(); // Ensure new vehicles also get this
+                            batch.set(docRef, vehicle); 
+                            addedCount++;
+                        }
+                        processedCount++;
+                    }
+                }
+                
+                let removedCount = 0;
+                if (sourceName === 'Google Sheet' && !isInitialSync) {
+                    // Compare all Firestore docs with currentSheetIdentifiers to find ones to remove
+                    // This requires fetching all current documents or using the local `currentVehicleData`
+                    // Note: `currentVehicleData` might not be perfectly in sync if onSnapshot hasn't fired for all changes yet.
+                    // A more robust removal would query Firestore directly for all vehicle IDs.
+                    // For now, we'll use the `lastSyncedSheetIdentifiers` as a proxy for "vehicles that *were* from the sheet".
+                    
+                    console.log("Last Synced IDs:", Array.from(lastSyncedSheetIdentifiers));
+                    console.log("Current Sheet IDs:", Array.from(currentSheetIdentifiers));
+
+                    for (const firestoreVehicle of currentVehicleData) {
+                        // An vehicle is considered for removal if it was marked as synced from sheet previously,
+                        // and its identifier (VIN or Stock# based) is NOT in the current sheet's identifiers.
+                        const firestoreIdentifier = firestoreVehicle.vin || `stock_${firestoreVehicle.stockNumber}`;
+                        const firestoreDocId = firestoreIdentifier.replace(/[\.#$\[\]\/]/g, "_");
+
+                        if (firestoreVehicle.syncedFromSheet && !currentSheetIdentifiers.has(firestoreDocId)) {
+                            // Double check against lastSyncedSheetIdentifiers to be sure it was part of a previous sync.
+                            // This helps avoid deleting manually added vehicles if `syncedFromSheet` flag isn't perfectly managed.
+                            // However, if a vehicle was in sheet A, then removed from sheet B, it should be deleted.
+                            // So, if it's `syncedFromSheet` and not in `currentSheetIdentifiers`, it's a candidate for removal.
+                            
+                            const docToRemoveRef = doc(vehiclesColRef, firestoreVehicle.id); // Use Firestore ID
+                            batch.delete(docToRemoveRef);
+                            removedCount++;
+                            console.log(`Marking vehicle ${firestoreVehicle.id} (VIN: ${firestoreVehicle.vin}, Stock: ${firestoreVehicle.stockNumber}) for removal as it's no longer in the Google Sheet.`);
+                        }
+                    }
+                }
+                
+                await batch.commit();
+
+                if (sourceName === 'Google Sheet') {
+                     lastSyncedSheetIdentifiers = new Set(currentSheetIdentifiers); // Update for next sync
+                     // Persist lastSyncedSheetIdentifiers to Firestore settings? Optional, for more robust multi-session removal. For now, in-memory.
+                }
+
+                let message = `Successfully processed ${processedCount} vehicles from ${sourceName}. Added: ${addedCount}, Updated: ${updatedCount}.`;
+                if (removedCount > 0) {
+                    message += ` Removed: ${removedCount} (no longer in sheet).`;
+                }
+                if (!isInitialSync) { // Only show message for manual syncs or CSV uploads
+                    uploadStatusDiv.textContent = message;
+                    uploadStatusDiv.className = 'mt-4 text-green-500';
+                } else {
+                    console.log("Initial Google Sheet Sync:", message);
+                }
+                
+                if (sourceName === 'CSV') {
+                    document.getElementById('csv-file-input').value = ''; 
+                }
+
+            } catch (error) {
+                console.error(`Error during ${sourceName} processing:`, error);
+                 if (!isInitialSync) {
+                    uploadStatusDiv.textContent = `Error processing data from ${sourceName}: ${error.message}`;
+                    uploadStatusDiv.className = 'mt-4 text-red-500';
+                }
+            }
+        }
+
+
+        document.getElementById('upload-csv-button').addEventListener('click', async () => {
+            const fileInput = document.getElementById('csv-file-input');
+            const file = fileInput.files[0];
+            const uploadStatusDiv = document.getElementById('upload-status');
+
+            if (!file) {
+                uploadStatusDiv.textContent = 'Please select a CSV file first.';
+                uploadStatusDiv.className = 'mt-4 text-red-500';
+                return;
+            }
+            if (!isAuthReady || !db) {
+                 showMessageModal("Error", "Database connection not ready. Please wait and try again.");
+                 return;
+            }
+            if (typeof window.Papa === 'undefined') { 
+                handlePapaParseError('upload-status');
+                return;
+            }
+
+            uploadStatusDiv.textContent = 'Processing CSV...';
+            uploadStatusDiv.className = 'mt-4 text-blue-500';
+
+            window.Papa.parse(file, { 
+                header: true,
+                skipEmptyLines: true,
+                complete: results => processImportedData(results.data, 'CSV', false), // Not initial sync
+                error: error => {
+                    console.error("CSV parsing error:", error);
+                    uploadStatusDiv.textContent = `Error parsing CSV: ${error.message}`;
+                    uploadStatusDiv.className = 'mt-4 text-red-500';
+                }
+            });
+        });
+        
+        const syncGoogleSheetButton = document.getElementById('sync-google-sheet-button');
+        const refreshGoogleSheetButton = document.getElementById('refresh-google-sheet-button');
+
+        async function triggerGoogleSheetSync(isInitialSilentSync = false) {
+            const syncStatusDiv = document.getElementById('google-sheet-sync-status');
+            if (!isAuthReady || !db) {
+                 if (!isInitialSilentSync) showMessageModal("Error", "Database connection not ready. Please wait and try again.");
+                 else console.log("Google Sheet Sync: DB not ready for initial silent sync.");
+                 return;
+            }
+            if (typeof window.Papa === 'undefined') {
+                handlePapaParseError('google-sheet-sync-status'); // Pass the specific div ID
+                return;
+            }
+            if (!isInitialSilentSync) {
+                syncStatusDiv.textContent = 'Fetching data from Google Sheet...';
+                syncStatusDiv.className = 'mt-4 text-blue-500';
+            } else {
+                console.log("Initiating initial silent Google Sheet sync...");
+            }
+
+
+            try {
+                const response = await fetch(GOOGLE_SHEET_CSV_URL);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch Google Sheet: ${response.status} ${response.statusText}`);
+                }
+                const csvText = await response.text();
+                
+                window.Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: results => processImportedData(results.data, 'Google Sheet', isInitialSilentSync),
+                    error: error => {
+                        console.error("Google Sheet CSV parsing error:", error);
+                        if (!isInitialSilentSync) {
+                            syncStatusDiv.textContent = `Error parsing Google Sheet data: ${error.message}`;
+                            syncStatusDiv.className = 'mt-4 text-red-500';
+                        } else {
+                             console.error("Initial silent Google Sheet sync failed (parsing error).");
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Error fetching/processing Google Sheet:", error);
+                 if (!isInitialSilentSync) {
+                    syncStatusDiv.textContent = `Error with Google Sheet Sync: ${error.message}`;
+                    syncStatusDiv.className = 'mt-4 text-red-500';
+                } else {
+                    console.error("Initial silent Google Sheet sync failed (fetch/process error).");
+                }
+            }
+        }
+
+        if(syncGoogleSheetButton) syncGoogleSheetButton.addEventListener('click', () => triggerGoogleSheetSync(false));
+        if(refreshGoogleSheetButton) refreshGoogleSheetButton.addEventListener('click', () => triggerGoogleSheetSync(false));
+
+
+        function mapCsvRowToVehicle(row) {
+            const mappedData = {}; 
+            console.log("Original CSV Row:", row); // Log the raw row
+            for (const originalKey in row) {
+                if (row.hasOwnProperty(originalKey) && row[originalKey] !== null && row[originalKey] !== undefined) {
+                    let key = originalKey.trim().toLowerCase();
+                    let normalizedKey = key.replace(/[^a-z0-9]/gi, ''); // Remove all non-alphanumeric for matching
+                    
+                    // More specific and common variations first
+                    if (['stock', 'stockno', 'stocknum', 'stocknumber', 'stockid', 'stk'].includes(normalizedKey) || key === "stock#") {
+                        mappedData.stockNumber = String(row[originalKey]).trim();
+                    } else if (['vin', 'vinnumber'].includes(normalizedKey)) {
+                        mappedData.vin = String(row[originalKey]).trim().toUpperCase();
+                    } else if (normalizedKey === 'year') {
+                        mappedData.year = parseInt(row[originalKey]) || null;
+                    } else if (normalizedKey === 'make') {
+                        mappedData.make = String(row[originalKey]).trim();
+                    } else if (normalizedKey === 'model') {
+                        mappedData.model = String(row[originalKey]).trim();
+                    } else if (['bodystyle', 'body'].includes(normalizedKey)) {
+                        mappedData.bodyStyle = String(row[originalKey]).trim();
+                    } else if (['trimlevel', 'trim'].includes(normalizedKey)) {
+                        mappedData.trimLevel = String(row[originalKey]).trim();
+                    } else if (['extcolor', 'exteriorcolor', 'extclr', 'color', 'exteriorcolor', 'extclr'].includes(normalizedKey) || key.includes('ext') && key.includes('color')) {
+                        mappedData.extColor = String(row[originalKey]).trim();
+                    } else if (['intcolor', 'interiorcolor', 'intclr', 'interiorcolor', 'intclr'].includes(normalizedKey) || key.includes('int') && key.includes('color')) {
+                        mappedData.intColor = String(row[originalKey]).trim();
+                    } else if (['mileage', 'miles', 'odometer', 'currentmileage'].includes(normalizedKey)) {
+                        mappedData.mileage = parseInt(String(row[originalKey]).replace(/,/g, '')) || 0;
+                    } else if (['type', 'vehicletype'].includes(normalizedKey)) {
+                        mappedData.vehicleType = String(row[originalKey]).trim();
+                    } else if (['ageininventory', 'age', 'daysinstock', 'daysonlot'].includes(normalizedKey)) {
+                        mappedData.ageInInventory = parseInt(row[originalKey]) || 0;
+                    } else if (['lotlocation', 'lot'].includes(normalizedKey)) {
+                        mappedData.lotLocation = String(row[originalKey]).trim();
+                    } else if (['purchasedate', 'acqdate', 'acquisitiondate'].includes(normalizedKey)) {
+                        mappedData.purchaseDate = row[originalKey] ? new Date(row[originalKey]).toISOString() : null;
+                    } else if (['entrydate', 'inventorydate', 'datein', 'dateadded'].includes(normalizedKey)) {
+                        mappedData.entryDateCsv = row[originalKey]; 
+                    } else if (['photostatus'].includes(normalizedKey)) {
+                        mappedData.photoStatus = String(row[originalKey]).trim();
+                    } else if (['photodate'].includes(normalizedKey)) {
+                        mappedData.photoDate = row[originalKey] ? new Date(row[originalKey]).toISOString() : null;
+                    } else if (['notes', 'note', 'comments'].includes(normalizedKey)) {
+                        mappedData.notes = String(row[originalKey]).trim();
+                    } else if (['reconcost', 'totalcost', 'costofrecon'].includes(normalizedKey)) {
+                        mappedData.totalReconCost = parseFloat(String(row[originalKey]).replace(/[^0-9.-]+/g,"")) || 0;
+                    } else if (['reconcompletedate', 'lotreadydate'].includes(normalizedKey)) {
+                        mappedData.reconCompleteDate = row[originalKey] ? new Date(row[originalKey]).toISOString() : null;
+                    } else if (['daysinrecon'].includes(normalizedKey)) {
+                        mappedData.daysInRecon = parseInt(row[originalKey]) || 0;
+                    } else if (['retaildate', 'solddate'].includes(normalizedKey)) {
+                        mappedData.retailDate = row[originalKey] ? new Date(row[originalKey]).toISOString() : null;
+                    } else if (['acquisitiontype', 'acqtype', 'source', 'acqtype', 'acquisition type'].includes(normalizedKey) || key.includes('acq') && key.includes('type')) { 
+                        mappedData.acquisitionType = String(row[originalKey]).trim();
+                    } else if (['titleinhouse', 'title'].includes(normalizedKey)) { 
+                         mappedData.titleInHouseCsv = String(row[originalKey]).trim().toLowerCase();
+                    } else if (['reconstatuscsv', 'reconstatus', 'recon_status', 'status', 'recon status', 'sheetstatus'].includes(normalizedKey)) { 
+                        mappedData.reconStatusCsv = String(row[originalKey]).trim();
+                    }
+                    else if (row[originalKey] && String(row[originalKey]).trim() !== '') {
+                        console.log(`Unmapped CSV key: '${originalKey}' (normalized to: '${normalizedKey}') with value: '${row[originalKey]}'`);
+                    }
+                }
+            }
+            
+            console.log("Mapped Data Object before final vehicle construction:", mappedData);
+
+            const now = new Date().toISOString();
+            const entryTimestamp = mappedData.entryDateCsv && !isNaN(new Date(mappedData.entryDateCsv)) ? new Date(mappedData.entryDateCsv).toISOString() : now;
+
+            const initialStep = {
+                status: "New Arrival",
+                timestamp: entryTimestamp,
+                notes: `Imported. Original sheet status: ${mappedData.reconStatusCsv || 'N/A'}`,
+            };
+
+            return {
+                stockNumber: mappedData.stockNumber || '',
+                vin: mappedData.vin || '',
+                year: mappedData.year || null,
+                make: mappedData.make || '',
+                model: mappedData.model || '',
+                bodyStyle: mappedData.bodyStyle || '',
+                trimLevel: mappedData.trimLevel || '',
+                extColor: mappedData.extColor || '',
+                intColor: mappedData.intColor || '',
+                mileage: mappedData.mileage || 0,
+                vehicleType: mappedData.vehicleType || '',
+                ageInInventory: mappedData.ageInInventory || 0,
+                lotLocation: mappedData.lotLocation || '',
+                currentReconStatus: "New Arrival",
+                purchaseDate: mappedData.purchaseDate || null,
+                entryDate: entryTimestamp,
+                photoStatus: mappedData.photoStatus === "Taken" ? "Taken" : 'Not Taken',
+                photoDate: mappedData.photoDate || null,
+                notes: mappedData.notes || '',
+                totalReconCost: mappedData.totalReconCost || 0,
+                reconCompleteDate: mappedData.reconCompleteDate || null,
+                daysInRecon: mappedData.daysInRecon || 0,
+                retailDate: mappedData.retailDate || null,
+                acquisitionType: mappedData.acquisitionType || '',
+                titleInHouse: mappedData.titleInHouseCsv === 'yes' || mappedData.titleInHouseCsv === 'true',
+                statusHistory: [initialStep],
+                qualityReview: { detailer: "", interior: null, exterior: null, reviewDate: null },
+                syncedFromSheet: true
+                // lastUpdated will be set by serverTimestamp
+            };
+        }
+        
+        // --- UI Rendering and Interaction ---
+        const tabs = document.getElementById('tabs');
+        const tabContents = document.getElementById('tab-content-area').children;
+        const tabButtons = tabs.querySelectorAll('.tab-button');
+
+        tabs.addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab-button')) {
+                const targetTab = e.target.dataset.tab;
+
+                tabButtons.forEach(button => {
+                    button.classList.remove('bg-sky-500', 'text-white');
+                    button.classList.add('bg-gray-200', 'hover:bg-gray-300');
+                });
+                e.target.classList.add('bg-sky-500', 'text-white');
+                e.target.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+
+                for (let content of tabContents) {
+                    content.classList.remove('active');
+                }
+                document.getElementById(`${targetTab}-content`).classList.add('active');
+                // Refresh views when tabs are clicked
+                if (targetTab === 'dashboard') updateDashboardView(); 
+                if (targetTab === 'workflow') updateWorkflowBoardView();
+                if (targetTab === 'reports') updateReportsCharts();
+                if (targetTab === 'inventory') populateInventoryTable();
+            }
+        });
+
+        document.getElementById('inventory-view-filter').addEventListener('change', populateInventoryTable);
+        document.getElementById('inventory-search').addEventListener('input', populateInventoryTable);
+        document.querySelectorAll('#inventory-multiselect-filter-area input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', populateInventoryTable);
+        });
+
+        document.getElementById('dashboard-search').addEventListener('input', updateDashboardView);
+        document.getElementById('dashboard-status-filter').addEventListener('change', updateDashboardView);
+        document.querySelectorAll('#dashboard-multiselect-filter-area input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', updateDashboardView);
+        });
+
+
+        function populateInventoryTable() {
+            const tableBody = document.getElementById('inventory-table-body');
+            if (!tableBody) return;
+            tableBody.innerHTML = ''; 
+
+            const searchTerm = document.getElementById('inventory-search').value.toLowerCase();
+            const viewFilter = document.getElementById('inventory-view-filter').value;
+            const selectedPendingTasks = Array.from(document.querySelectorAll('#inventory-multiselect-filter-area input[type="checkbox"]:checked'))
+                                          .map(cb => cb.dataset.filterType);
+
+
+            let dataToDisplay = [...currentVehicleData]; 
+
+             dataToDisplay = dataToDisplay.filter(vehicle => {
+                const matchesSearch = searchTerm === '' ||
+                    (vehicle.vin && vehicle.vin.toLowerCase().includes(searchTerm)) ||
+                    (vehicle.stockNumber && vehicle.stockNumber.toLowerCase().includes(searchTerm)) ||
+                    (vehicle.make && vehicle.make.toLowerCase().includes(searchTerm)) ||
+                    (vehicle.model && vehicle.model.toLowerCase().includes(searchTerm));
+                
+                if (!matchesSearch) return false;
+
+                let matchesViewFilter = false;
+                switch(viewFilter) {
+                    case 'active':
+                        matchesViewFilter = vehicle.currentReconStatus !== 'Lot Ready' && vehicle.currentReconStatus !== 'Sold';
+                        break;
+                    case 'needs_attention': 
+                        matchesViewFilter = (
+                            !isStageCompleted(vehicle, "Mechanical") ||
+                            !isStageCompleted(vehicle, "Detailing") ||
+                            vehicle.photoStatus !== "Taken" ||
+                            !vehicle.titleInHouse
+                        ) && vehicle.currentReconStatus !== 'Sold' && vehicle.currentReconStatus !== 'Lot Ready';
+                        break;
+                    case 'lot_ready':
+                        matchesViewFilter = vehicle.currentReconStatus === 'Lot Ready';
+                        break;
+                    case 'sold':
+                        matchesViewFilter = vehicle.currentReconStatus === 'Sold';
+                        break;
+                    case 'all':
+                        matchesViewFilter = true;
+                        break;
+                    default: 
+                        matchesViewFilter = vehicle.currentReconStatus === viewFilter;
+                }
+                if (!matchesViewFilter) return false;
+
+                if (selectedPendingTasks.length > 0) {
+                    const meetsAllPendingCriteria = selectedPendingTasks.every(task => {
+                        if (task === 'mechanical') return !isStageCompleted(vehicle, "Mechanical");
+                        if (task === 'detailing') return !isStageCompleted(vehicle, "Detailing");
+                        if (task === 'photos') return vehicle.photoStatus !== "Taken";
+                        if (task === 'title') return !vehicle.titleInHouse;
+                        return true; 
+                    });
+                    if (!meetsAllPendingCriteria) return false;
+                }
+                return true;
+            });
+
+            if (currentSort.column) {
+                dataToDisplay.sort((a, b) => {
+                    let valA = a[currentSort.column];
+                    let valB = b[currentSort.column];
+
+                    if (currentSort.column === 'vehicle') {
+                        valA = `${a.year} ${a.make} ${a.model}`;
+                        valB = `${b.year} ${b.make} ${b.model}`;
+                    } else if (typeof valA === 'string') {
+                        valA = valA.toLowerCase();
+                        valB = valB.toLowerCase();
+                    } else if (typeof valA === 'boolean') { 
+                        valA = valA ? 1 : 0;
+                        valB = valB ? 1 : 0;
+                    }
+
+                    if (valA < valB) return currentSort.direction === 'asc' ? -1 : 1;
+                    if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+
+
+            if (dataToDisplay.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4">No vehicles found matching criteria.</td></tr>'; 
+                return;
+            }
+
+            dataToDisplay.forEach(vehicle => {
+                const row = tableBody.insertRow();
+                row.dataset.id = vehicle.id; 
+                row.innerHTML = `
+                    <td class="border px-3 py-2 text-sm">${vehicle.stockNumber || 'N/A'}</td>
+                    <td class="border px-3 py-2 text-sm">${vehicle.vin || 'N/A'}</td>
+                    <td class="border px-3 py-2 text-sm">${vehicle.year || ''} ${vehicle.make || ''} ${vehicle.model || ''}</td>
+                    <td class="border px-3 py-2 text-sm">${vehicle.ageInInventory || 0} days</td>
+                    <td class="border px-3 py-2 text-sm">${vehicle.acquisitionType || 'N/A'}</td>
+                    <td class="border px-3 py-2 text-sm"><span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(vehicle.currentReconStatus)}">${vehicle.currentReconStatus || 'N/A'}</span></td>
+                    <td class="border px-3 py-2 text-sm">
+                        <select class="inventory-photo-status p-1 text-xs border rounded-md" data-id="${vehicle.id}">
+                            <option value="Not Taken" ${vehicle.photoStatus === 'Not Taken' ? 'selected' : ''}>Not Taken</option>
+                            <option value="Taken" ${vehicle.photoStatus === 'Taken' ? 'selected' : ''}>Taken</option>
+                        </select>
+                    </td>
+                    <td class="border px-3 py-2 text-sm text-center">
+                        <input type="checkbox" class="inventory-title-status h-4 w-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500" data-id="${vehicle.id}" ${vehicle.titleInHouse ? 'checked' : ''}>
+                    </td>
+                    <td class="border px-3 py-2 text-sm">
+                        <button class="delete-vehicle-button text-red-500 hover:text-red-700" data-id="${vehicle.id}"><i class="fas fa-trash"></i> Delete</button>
+                    </td>
+                `;
+            });
+            addInventoryTableEventListeners();
+        }
+        
+        let currentSort = { column: null, direction: 'asc' };
+
+        document.querySelectorAll('#inventory-content th.sortable').forEach(headerCell => {
+            headerCell.addEventListener('click', () => {
+                const sortColumn = headerCell.dataset.sort;
+                if (currentSort.column === sortColumn) {
+                    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.column = sortColumn;
+                    currentSort.direction = 'asc';
+                }
+                document.querySelectorAll('#inventory-content th.sortable .sort-arrow').forEach(arrow => arrow.textContent = '');
+                const currentArrow = headerCell.querySelector('.sort-arrow');
+                if (currentArrow) currentArrow.textContent = currentSort.direction === 'asc' ? '▲' : '▼';
+                
+                populateInventoryTable();
+            });
+        });
+
+
+        function addInventoryTableEventListeners() {
+            document.querySelectorAll('#inventory-table-body tr').forEach(row => {
+                row.addEventListener('click', (e) => {
+                    if (e.target.closest('.delete-vehicle-button') || e.target.closest('.inventory-photo-status') || e.target.closest('.inventory-title-status')) {
+                        return;
+                    }
+                    const vehicleId = e.currentTarget.dataset.id;
+                    if (vehicleId) {
+                        openVehicleDetailModal(vehicleId);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.delete-vehicle-button').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                     e.stopPropagation(); 
+                    const vehicleId = e.currentTarget.dataset.id;
+                    const userConfirmed = await showConfirmModal("Confirm Deletion", `Are you sure you want to delete vehicle ${vehicleId}? This cannot be undone.`);
+                    if (userConfirmed) {
+                        try {
+                            const vehiclesColRef = getVehiclesCollectionRef();
+                            if (!vehiclesColRef) return;
+                            await deleteDoc(doc(vehiclesColRef, vehicleId));
+                            showMessageModal("Success", `Vehicle ${vehicleId} deleted.`);
+                        } catch (error) {
+                            console.error("Error deleting vehicle:", error);
+                            showMessageModal("Error", `Failed to delete vehicle: ${error.message}`);
+                        }
+                    }
+                });
+            });
+
+            document.querySelectorAll('.inventory-photo-status').forEach(select => {
+                select.addEventListener('change', async (e) => {
+                    e.stopPropagation();
+                    const vehicleId = e.target.dataset.id;
+                    const newStatus = e.target.value;
+                    await handleInventoryInlineUpdate(vehicleId, 'photoStatus', newStatus);
+                });
+            });
+
+            document.querySelectorAll('.inventory-title-status').forEach(checkbox => {
+                checkbox.addEventListener('change', async (e) => {
+                    e.stopPropagation();
+                    const vehicleId = e.target.dataset.id;
+                    const newStatus = e.target.checked;
+                    await handleInventoryInlineUpdate(vehicleId, 'titleInHouse', newStatus);
+                });
+            });
+        }
+
+        async function handleInventoryInlineUpdate(vehicleId, fieldToUpdate, newValue) {
+            if (!vehicleId || !db) return;
+            const vehicle = currentVehicleData.find(v => v.id === vehicleId);
+            if (!vehicle) return;
+
+            const vehicleRef = doc(getVehiclesCollectionRef(), vehicleId);
+            const updatePayload = {
+                [fieldToUpdate]: newValue,
+                lastUpdated: serverTimestamp()
+            };
+
+            if (fieldToUpdate === 'photoStatus' && newValue === 'Taken' && !vehicle.photoDate) { // Set photoDate only if becoming "Taken" and not already set
+                updatePayload.photoDate = new Date().toISOString();
+            }
+            
+            const tempVehicleState = { ...vehicle, ...updatePayload };
+            // Pass the current (intended) status from the temp state to determineNextOverallStatus
+            updatePayload.currentReconStatus = determineNextOverallStatus(tempVehicleState, tempVehicleState.currentReconStatus);
+
+
+            try {
+                await updateDoc(vehicleRef, updatePayload);
+                showMessageModal("Success", `Vehicle ${fieldToUpdate} updated. Current status: ${updatePayload.currentReconStatus}.`);
+            } catch (error) {
+                console.error(`Error updating ${fieldToUpdate}:`, error);
+                showMessageModal("Error", `Failed to update ${fieldToUpdate}.`);
+            }
+        }
+        
+        function getStatusColor(status) {
+            const colors = {
+                "New Arrival": "bg-blue-100 text-blue-800",
+                "Mechanical": "bg-yellow-100 text-yellow-800",
+                "Detailing": "bg-purple-100 text-purple-800",
+                "Photos": "bg-pink-100 text-pink-800",
+                "Lot Ready": "bg-green-100 text-green-800",
+                "Sold": "bg-gray-300 text-gray-800"
+            };
+            return colors[status] || "bg-gray-100 text-gray-800";
+        }
+
+        const modal = document.getElementById('vehicle-detail-modal');
+        const closeModalButton = modal.querySelector('.close-modal');
+        
+        closeModalButton.onclick = () => modal.style.display = 'none';
+        window.onclick = (event) => {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function formatDuration(milliseconds) {
+            if (milliseconds < 0 || isNaN(milliseconds)) return "N/A";
+            let seconds = Math.floor(milliseconds / 1000);
+            let minutes = Math.floor(seconds / 60);
+            let hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            hours = hours % 24;
+            minutes = minutes % 60;
+            seconds = seconds % 60;
+
+            let durationString = "";
+            if (days > 0) durationString += `${days}d `;
+            if (hours > 0) durationString += `${hours}h `;
+            if (minutes > 0) durationString += `${minutes}m `;
+            if (days === 0 && hours === 0 && minutes === 0 ) { 
+                 durationString += `${seconds}s`;
+            }
+            return durationString.trim() || "0s"; 
+        }
+
+
+        function openVehicleDetailModal(vehicleId) {
+            activeVehicleId = vehicleId;
+            statusToUpdateTo = null; 
+            stageBeingCompletedForForm = null;
+            
+            const vehicle = currentVehicleData.find(v => v.id === vehicleId);
+            if (!vehicle) {
+                console.error("Vehicle not found for modal:", vehicleId);
+                showMessageModal("Error", "Could not find vehicle details.");
+                return;
+            }
+
+            document.getElementById('modal-vehicle-title').textContent = `${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.vin})`;
+            
+            document.getElementById('modal-vehicle-info').innerHTML = `
+                <p><strong>Stock #:</strong> ${vehicle.stockNumber || 'N/A'}</strong></p>
+                <p><strong>VIN:</strong> ${vehicle.vin || 'N/A'}</p>
+                <p><strong>Acq. Type:</strong> ${vehicle.acquisitionType || 'N/A'}</p>
+                <p><strong>Mileage:</strong> ${vehicle.mileage ? vehicle.mileage.toLocaleString() : 'N/A'}</p>
+                <p><strong>Ext. Color:</strong> ${vehicle.extColor || 'N/A'}</p>
+                <p><strong>Int. Color:</strong> ${vehicle.intColor || 'N/A'}</p>
+                <p><strong>Current Status:</strong> <span class="font-semibold ${getStatusColor(vehicle.currentReconStatus).split(' ')[0]} px-1 rounded">${vehicle.currentReconStatus || 'N/A'}</span></p>
+                <p><strong>Total Recon Cost:</strong> $${(vehicle.totalReconCost || 0).toFixed(2)}</p>
+                <p><strong>Photo Status:</strong> ${vehicle.photoStatus || 'N/A'}</p>
+                <p><strong>Title In-House:</strong> ${vehicle.titleInHouse ? '<i class="fas fa-check-circle text-green-500"></i> Yes' : '<i class="fas fa-times-circle text-red-500"></i> No'}</p>
+                <p class="md:col-span-2"><strong>General Notes:</strong> ${vehicle.notes || 'N/A'}</p>
+            `;
+            
+            const interactiveActionsDiv = document.getElementById('modal-interactive-actions'); 
+            const statusUpdateFormArea = document.getElementById('modal-status-update-form-area');
+            const qualityReviewFields = document.getElementById('modal-quality-review-fields');
+            const mechanicalCostFields = document.getElementById('modal-mechanical-cost-fields');
+            interactiveActionsDiv.innerHTML = ''; 
+            statusUpdateFormArea.classList.add('hidden');
+            qualityReviewFields.classList.add('hidden');
+            mechanicalCostFields.classList.add('hidden');
+            document.getElementById('modal-notes-input').value = '';
+            document.getElementById('modal-mechanical-cost').value = '';
+
+            const emailRequestArea = document.getElementById('modal-email-request-area');
+            emailRequestArea.innerHTML = ''; 
+            
+            const isEssentiallyNew = !vehicle.statusHistory || vehicle.statusHistory.length <= 1 && vehicle.statusHistory[0]?.notes?.toLowerCase().includes("imported");
+
+            if ( (isEssentiallyNew && vehicle.currentReconStatus === "New Arrival") || 
+                 (vehicle.currentReconStatus === "New Arrival" && !vehicle.statusHistory.some(h => h.status === "Mechanical" && h.notes?.toLowerCase().includes("service request sent")) ) ) {
+                 const emailButton = document.createElement('button');
+                 emailButton.className = 'action-button action-button-primary mb-3';
+                 emailButton.innerHTML = '<i class="fas fa-envelope mr-2"></i>Send Service Request & Start Recon (to Mechanical)';
+                 emailButton.onclick = async () => {
+                    document.getElementById('modal-email-log').innerHTML = `<strong>Simulated Email Sent:</strong> Service/Inspection request for ${vehicle.vin} at ${new Date().toLocaleTimeString()}`;
+                    statusToUpdateTo = "Mechanical"; 
+                    stageBeingCompletedForForm = "New Arrival"; // Completing "New Arrival" by sending to Mech
+                    document.getElementById('modal-notes-input').value = "Service request sent; awaiting pickup by mechanical.";
+                    await handleModalStatusUpdate(true, false); // isInitialReconStart = true
+                 };
+                 emailRequestArea.appendChild(emailButton);
+            }
+            
+            const currentStatus = vehicle.currentReconStatus;
+            const sortedHistory = vehicle.statusHistory ? [...vehicle.statusHistory].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) : [];
+            const photosAreTaken = vehicle.photoStatus === "Taken";
+
+            const createActionButton = (text, targetStatusOnClick, stageBeingActioned, isPrimary = false, iconClass = 'fa-arrow-right', isCompletionAction = false) => {
+                const button = document.createElement('button');
+                button.className = `action-button ${isPrimary ? 'action-button-primary' : 'action-button-secondary'}`;
+                
+                if (isStageCompleted(vehicle, stageBeingActioned) && !isCompletionAction && stageBeingActioned !== currentStatus && targetStatusOnClick !== "Lot Ready") {
+                     button.classList.remove('action-button-secondary', 'action-button-primary');
+                     button.classList.add('action-button-completed');
+                     button.disabled = true; 
+                }
+
+                button.dataset.targetStatus = targetStatusOnClick; 
+                button.dataset.stageBeingActioned = stageBeingActioned; 
+                button.dataset.isCompletion = isCompletionAction.toString(); 
+                button.innerHTML = `<i class="fas ${iconClass} mr-2"></i> ${text}`; 
+                
+                button.onclick = () => {
+                    if(button.disabled) return;
+                    statusToUpdateTo = targetStatusOnClick; 
+                    stageBeingCompletedForForm = stageBeingActioned; 
+                    
+                    document.getElementById('modal-confirm-status-update-button').dataset.isCompletionAction = isCompletionAction.toString();
+                    statusUpdateFormArea.classList.remove('hidden'); 
+                    document.getElementById('modal-updating-to-status-label').textContent = text.startsWith("<i") ? text.substring(text.indexOf('</i>') + 5).trim() : text;
+                    document.getElementById('previous-status-note-label').textContent = stageBeingActioned; 
+                    
+                    mechanicalCostFields.classList.add('hidden');
+                    qualityReviewFields.classList.add('hidden');
+
+                    if (stageBeingActioned === "Mechanical" && isCompletionAction) { 
+                        mechanicalCostFields.classList.remove('hidden');
+                        document.getElementById('modal-mechanical-cost').focus();
+                    } else if (stageBeingActioned === "Detailing" && isCompletionAction) { 
+                        qualityReviewFields.classList.remove('hidden');
+                        populateDetailerDropdownInModal(); 
+                        document.getElementById('modal-detailer-name').value = vehicle.qualityReview?.detailer || '';
+                        document.getElementById('modal-interior-quality').value = vehicle.qualityReview?.interior || '';
+                        document.getElementById('modal-exterior-quality').value = vehicle.qualityReview?.exterior || '';
+                        document.getElementById('modal-detailer-name').focus();
+                    } else { 
+                        document.getElementById('modal-notes-input').focus();
+                    }
+                };
+                interactiveActionsDiv.appendChild(button);
+            };
+            
+            // Build Action Buttons
+            if (currentStatus !== "Sold" && currentStatus !== "Lot Ready") {
+                // Mechanical Actions
+                if (!isStageCompleted(vehicle, "Mechanical")) {
+                    createActionButton(currentStatus === "Mechanical" ? "Complete Mechanical & Add Costs" : "Start/Resume Mechanical", "Mechanical", "Mechanical", currentStatus === "Mechanical", "fa-wrench", currentStatus === "Mechanical");
+                } else {
+                     const mechEntry = sortedHistory.find(h => h.status === "Mechanical" && h.mechanicalCost !== undefined && h.notes?.toLowerCase().includes("completed"));
+                     if(mechEntry && !interactiveActionsDiv.querySelector('.action-button-completed[data-status="Mechanical"]')) {
+                        interactiveActionsDiv.appendChild(createCompletedStepDisplay("Mechanical", mechEntry.timestamp, mechEntry.notes, mechEntry.mechanicalCost));
+                     }
+                }
+
+                // Detailing Actions (can be done regardless of Mechanical state for starting)
+                if (!isStageCompleted(vehicle, "Detailing")) {
+                     createActionButton(currentStatus === "Detailing" ? "Complete Detailing & Add Review" : "Start/Resume Detailing", "Detailing", "Detailing", currentStatus === "Detailing", "fa-spray-can", currentStatus === "Detailing");
+                } else {
+                     const detailEntry = sortedHistory.find(h => h.status === "Detailing" && h.detailer && h.notes?.toLowerCase().includes("completed"));
+                     if(detailEntry && !interactiveActionsDiv.querySelector('.action-button-completed[data-status="Detailing"]')) {
+                        interactiveActionsDiv.appendChild(createCompletedStepDisplay("Detailing", detailEntry.timestamp, detailEntry.notes, null, detailEntry.detailer, detailEntry.interiorQuality, detailEntry.exteriorQuality));
+                     }
+                }
+                
+                // Photos Actions
+                if (!isStageCompleted(vehicle, "Photos")) { 
+                     if (currentStatus !== "Photos" && !hasStartedStage(vehicle, "Photos")) { 
+                        createActionButton("Start Photos", "Photos", "Photos", false, "fa-camera", false); 
+                     } else if (currentStatus === "Photos" && !photosAreTaken) { // If in Photos stage, but not marked "Taken"
+                        const p = document.createElement('p');
+                        p.className = "text-sm text-center text-gray-600 py-2";
+                        p.innerHTML = "<i class='fas fa-info-circle mr-1'></i>Use 'Photo Status' section below to mark photos as 'Taken'.";
+                        interactiveActionsDiv.appendChild(p);
+                     }
+                } else { 
+                     if (!interactiveActionsDiv.querySelector('.action-button-completed[data-status="Photos"]')) {
+                        interactiveActionsDiv.appendChild(createCompletedStepDisplay("Photos", vehicle.photoDate || "Unknown", "Photos marked as Taken"));
+                     }
+                }
+                
+                // Lot Ready Action (only if all prerequisites are met)
+                if (isStageCompleted(vehicle, "Mechanical") && isStageCompleted(vehicle, "Detailing") && photosAreTaken && vehicle.titleInHouse) {
+                    createActionButton("Move to Lot Ready", "Lot Ready", currentStatus, true, "fa-store", true); 
+                } else if (currentStatus !== "Lot Ready" && currentStatus !== "Sold") { 
+                    const missing = [];
+                    if (!isStageCompleted(vehicle, "Mechanical")) missing.push("Mechanical Complete");
+                    if (!isStageCompleted(vehicle, "Detailing")) missing.push("Detailing Complete (with Review)");
+                    if (!photosAreTaken) missing.push("Photos Taken");
+                    if (!vehicle.titleInHouse) missing.push("Title In-House");
+                    if (missing.length > 0) {
+                        const p = document.createElement('p');
+                        p.className = "text-xs text-center text-gray-500 py-2";
+                        p.innerHTML = `<i class='fas fa-info-circle mr-1'></i>Prerequisites for Lot Ready: ${missing.join(', ')}.`;
+                        interactiveActionsDiv.appendChild(p);
+                    }
+                }
+            } else if (currentStatus === "Lot Ready") {
+                interactiveActionsDiv.appendChild(createCompletedStepDisplay("Lot Ready", vehicle.reconCompleteDate || "Unknown"));
+            } else if (currentStatus === "Sold") {
+                 interactiveActionsDiv.appendChild(createCompletedStepDisplay("Sold", vehicle.retailDate || "Unknown"));
+            }
+
+            document.getElementById('modal-photo-status-select').value = vehicle.photoStatus || 'Not Taken';
+            document.getElementById('modal-title-inhouse-checkbox').checked = vehicle.titleInHouse || false;
+            document.getElementById('modal-email-log').textContent = ''; 
+            
+            // Populate Status History
+            const historyLogDiv = document.getElementById('modal-status-history-display').querySelector('div');
+            historyLogDiv.innerHTML = '';
+            if (sortedHistory.length > 0) {
+                sortedHistory.forEach(entry => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'status-history-item relative pl-4 py-3'; // Added padding for border
+                    
+                    let iconClass = 'fa-info-circle text-gray-500'; // Default
+                    let borderColorClass = 'border-l-gray-300'; // Default left border
+
+                    if (entry.status === "Mechanical") { iconClass = 'fa-wrench text-yellow-500'; borderColorClass = 'border-l-yellow-400';}
+                    else if (entry.status === "Detailing") { iconClass = 'fa-spray-can text-purple-500'; borderColorClass = 'border-l-purple-400';}
+                    else if (entry.status === "Photos") { iconClass = 'fa-camera text-pink-500'; borderColorClass = 'border-l-pink-400';}
+                    else if (entry.status === "Lot Ready") { iconClass = 'fa-store text-green-500'; borderColorClass = 'border-l-green-400';}
+                    else if (entry.status === "New Arrival") { iconClass = 'fa-truck text-blue-500'; borderColorClass = 'border-l-blue-400';}
+                    else if (entry.status === "Sold") { iconClass = 'fa-dollar-sign text-gray-700'; borderColorClass = 'border-l-gray-500';}
+                    
+                    // Specific note icons override status icon if applicable
+                    if (entry.notes && entry.notes.toLowerCase().includes("cost added")) iconClass = 'fa-file-invoice-dollar text-yellow-600';
+                    if (entry.notes && entry.notes.toLowerCase().includes("review added")) iconClass = 'fa-star text-purple-600';
+                    
+                    itemDiv.classList.add(borderColorClass, 'border-l-4');
+
+
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'status-history-header';
+                    headerDiv.innerHTML = `<i class="fas ${iconClass} fa-fw"></i> <span>${entry.status}</span> <span class="ml-auto text-xs text-gray-500 font-normal">${new Date(entry.timestamp).toLocaleString()}</span>`;
+                    
+                    const bodyDiv = document.createElement('div');
+                    bodyDiv.className = 'status-history-body';
+                    if (entry.notes) bodyDiv.innerHTML += `<p><em>Notes:</em> ${entry.notes}</p>`;
+                    if (entry.detailer) bodyDiv.innerHTML += `<p><em>Detailer:</em> ${entry.detailer} (Int: ${entry.interiorQuality || 'N/A'}, Ext: ${entry.exteriorQuality || 'N/A'})</p>`;
+                    if (typeof entry.mechanicalCost === 'number' && !isNaN(entry.mechanicalCost) ) {
+                        bodyDiv.innerHTML += `<p><em>Mech. Cost:</em> $${parseFloat(entry.mechanicalCost).toFixed(2)}</p>`;
+                    }
+                    
+                    itemDiv.appendChild(headerDiv);
+                    if (bodyDiv.innerHTML) itemDiv.appendChild(bodyDiv);
+                    historyLogDiv.appendChild(itemDiv);
+                });
+            } else {
+                historyLogDiv.innerHTML = '<p>No status history recorded.</p>';
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function createCompletedStepDisplay(statusName, completedTimestamp, notes, cost, detailer, intQuality, extQuality) {
+            const div = document.createElement('button'); 
+            div.className = 'action-button action-button-completed'; 
+            div.disabled = true; 
+            div.dataset.status = statusName;
+            let content = `<i class="fas fa-check-circle mr-2"></i>${statusName} (Completed: ${completedTimestamp ? new Date(completedTimestamp).toLocaleDateString() : 'N/A'})`;
+            if (notes) content += `<br><small class="italic">Notes: ${notes}</small>`;
+            if (statusName === "Mechanical" && typeof cost === 'number') content += `<br><small>Cost: $${cost.toFixed(2)}</small>`;
+            if (detailer) content += `<br><small>Detailer: ${detailer} (Int: ${intQuality || 'N/A'}, Ext: ${extQuality || 'N/A'})</small>`;
+            div.innerHTML = content;
+            return div;
+        }
+        
+        document.getElementById('modal-confirm-status-update-button').addEventListener('click', () => {
+            const confirmButton = document.getElementById('modal-confirm-status-update-button');
+            const isCompletion = confirmButton.dataset.isCompletionAction === 'true';
+            handleModalStatusUpdate(false, isCompletion);
+        });
+
+        async function handleModalStatusUpdate(isInitialReconStart = false, isButtonCompletionActionFlag = false, customNote = null) {
+            if (!activeVehicleId || !statusToUpdateTo) {
+                console.error("Modal Update: activeVehicleId or statusToUpdateTo is not set.");
+                return;
+            }
+            const vehicle = currentVehicleData.find(v => v.id === activeVehicleId);
+            if (!vehicle) {
+                 console.error("Modal Update: Vehicle not found for ID:", activeVehicleId);
+                return;
+            }
+
+            const actionedStage = stageBeingCompletedForForm || vehicle.currentReconStatus; 
+            const targetStatusForUpdate = statusToUpdateTo; // The status we intend to move towards or are currently in.
+            
+            let stepNotes = customNote !== null ? customNote : document.getElementById('modal-notes-input').value.trim();
+            let mechanicalCost = 0; 
+            
+            const isActuallyCompletingMechanical = actionedStage === "Mechanical" && isButtonCompletionActionFlag;
+            const isActuallyCompletingDetailing = actionedStage === "Detailing" && isButtonCompletionActionFlag;
+            const isMovingToLotReady = targetStatusForUpdate === "Lot Ready" && isButtonCompletionActionFlag; // Explicitly completing current stage TO Lot Ready
+
+            const vehicleRef = doc(getVehiclesCollectionRef(), activeVehicleId);
+            let qualityReviewDataToSave = vehicle.qualityReview || {};
+            let newHistoryEntryNotes = stepNotes;
+
+            const newHistoryEntry = {
+                status: actionedStage, // Status being actioned/completed
+                timestamp: new Date().toISOString(),
+                notes: "", // Will be set below
+                previousStatus: vehicle.currentReconStatus 
+            };
+
+            if (isActuallyCompletingMechanical) { 
+                let rawCost = document.getElementById('modal-mechanical-cost').value;
+                mechanicalCost = (rawCost === "" || rawCost === null || isNaN(parseFloat(rawCost))) ? 0 : parseFloat(rawCost); 
+                newHistoryEntry.mechanicalCost = mechanicalCost; 
+                newHistoryEntry.notes = stepNotes ? `Mechanical Completed. ${stepNotes}` : "Mechanical Completed.";
+            } else if (isActuallyCompletingDetailing) { 
+                const detailer = document.getElementById('modal-detailer-name').value;
+                const interior = document.getElementById('modal-interior-quality').value;
+                const exterior = document.getElementById('modal-exterior-quality').value;
+                if (!detailer || !interior || !exterior) {
+                    showMessageModal("Input Required", "Please provide Detailer Name, Interior Quality, and Exterior Quality for Detailing.");
+                    return; 
+                }
+                newHistoryEntry.detailer = detailer;
+                newHistoryEntry.interiorQuality = parseInt(interior);
+                newHistoryEntry.exteriorQuality = parseInt(exterior);
+                newHistoryEntry.notes = stepNotes ? `Detailing Completed. ${stepNotes}` : "Detailing Completed.";
+                qualityReviewDataToSave = { detailer, interior: parseInt(interior), exterior: parseInt(exterior), reviewDate: new Date().toISOString() };
+            } else if (isMovingToLotReady) {
+                newHistoryEntry.status = "Lot Ready"; // History entry for reaching Lot Ready
+                newHistoryEntry.notes = stepNotes ? `Moved to Lot Ready. ${stepNotes}` : "Moved to Lot Ready.";
+            } else if (isInitialReconStart) { // e.g. "Send Service Request" action
+                 newHistoryEntry.status = targetStatusForUpdate; // e.g. Mechanical
+                 newHistoryEntry.notes = stepNotes; // e.g. "Service request sent..."
+            } else if (customNote !== null) { // From drag-and-drop - this path is now less likely with direct update in handleDrop
+                 newHistoryEntry.status = targetStatusForUpdate; // The stage it was dragged TO
+                 newHistoryEntry.notes = customNote;
+            } else { // General "Start/Resume" action from modal button
+                newHistoryEntry.status = actionedStage; // The stage being started/resumed
+                newHistoryEntry.notes = stepNotes ? `${actionedStage} Started. ${stepNotes}` : `${actionedStage} Started.`;
+            }
+            
+            const tempVehicleForStatusCheck = { 
+                ...vehicle, 
+                statusHistory: [...(vehicle.statusHistory || []), newHistoryEntry], 
+                totalReconCost: isActuallyCompletingMechanical ? (vehicle.totalReconCost || 0) + mechanicalCost : vehicle.totalReconCost,
+                qualityReview: isActuallyCompletingDetailing ? qualityReviewDataToSave : vehicle.qualityReview,
+                photoStatus: vehicle.photoStatus, 
+                titleInHouse: vehicle.titleInHouse, 
+                currentReconStatus: targetStatusForUpdate // Simulate the intended status for the check
+            };
+            const finalNextCurrentReconStatus = determineNextOverallStatus(tempVehicleForStatusCheck, targetStatusForUpdate);
+            
+            const updatedStatusHistory = Array.isArray(vehicle.statusHistory) ? [...vehicle.statusHistory, newHistoryEntry] : [newHistoryEntry];
+            
+            const updateData = {
+                currentReconStatus: finalNextCurrentReconStatus, 
+                statusHistory: updatedStatusHistory,
+                lastUpdated: serverTimestamp(),
+                qualityReview: qualityReviewDataToSave, 
+            };
+            if (isActuallyCompletingMechanical) { 
+                 updateData.totalReconCost = (vehicle.totalReconCost || 0) + mechanicalCost;
+            }
+            if (finalNextCurrentReconStatus === "Lot Ready" && !vehicle.reconCompleteDate) {
+                updateData.reconCompleteDate = new Date().toISOString();
+            }
+            // Sold status is not set via this modal flow anymore based on prior feedback.
+
+            try {
+                await updateDoc(vehicleRef, updateData);
+                showMessageModal("Success", `Vehicle status updated to ${finalNextCurrentReconStatus}.`);
+                document.getElementById('modal-notes-input').value = '';
+                document.getElementById('modal-mechanical-cost').value = '';
+                document.getElementById('modal-status-update-form-area').classList.add('hidden');
+                if (modal.style.display === 'block') openVehicleDetailModal(activeVehicleId); 
+            } catch (error) {
+                console.error("Error updating vehicle status:", error);
+                showMessageModal("Error", `Failed to update status: ${error.message}`);
+            }
+        }
+
+       function determineNextOverallStatus(vehicleData, intendedStatus) {
+            if (!vehicleData) return "New Arrival";
+            if (intendedStatus === "Sold") return "Sold"; 
+
+            const mechCompleted = isStageCompleted(vehicleData, "Mechanical");
+            const detailCompleted = isStageCompleted(vehicleData, "Detailing");
+            const photosTaken = vehicleData.photoStatus === "Taken";
+            const titleIn = vehicleData.titleInHouse;
+
+            if (mechCompleted && detailCompleted && photosTaken && titleIn) {
+                return "Lot Ready";
+            }
+            
+            // If not Lot Ready, the intendedStatus (the stage being moved to or worked on) is generally the correct current status.
+            // This function is mainly to escalate to Lot Ready if all conditions are met.
+            // Otherwise, it confirms the `intendedStatus` unless `intendedStatus` itself was `Lot Ready` but prereqs failed.
+            return intendedStatus || vehicleData.currentReconStatus || "New Arrival";
+        }
+
+
+        document.getElementById('modal-update-photo-status-button').addEventListener('click', async () => {
+            if (!activeVehicleId) return;
+            const vehicle = currentVehicleData.find(v => v.id === activeVehicleId);
+            if (!vehicle) return;
+
+            const newPhotoStatus = document.getElementById('modal-photo-status-select').value;
+            const vehicleRef = doc(getVehiclesCollectionRef(), activeVehicleId);
+            const updateData = {
+                photoStatus: newPhotoStatus,
+                lastUpdated: serverTimestamp()
+            };
+
+            if (newPhotoStatus === "Taken" && !vehicle.photoDate ) { 
+                updateData.photoDate = new Date().toISOString(); 
+            }
+            
+            const tempVehicleState = { ...vehicle, ...updateData };
+            updateData.currentReconStatus = determineNextOverallStatus(tempVehicleState, vehicle.currentReconStatus); // Pass current status as intended
+
+            try {
+                await updateDoc(vehicleRef, updateData);
+                showMessageModal("Success", `Photo status updated to ${newPhotoStatus}. Vehicle status is now ${updateData.currentReconStatus}.`);
+                if (modal.style.display === 'block') openVehicleDetailModal(activeVehicleId); 
+            } catch (error) {
+                console.error("Error updating photo status:", error);
+                showMessageModal("Error", `Failed to update photo status: ${error.message}`);
+            }
+        });
+
+        const titleCheckbox = document.getElementById('modal-title-inhouse-checkbox');
+        if(titleCheckbox) {
+            titleCheckbox.addEventListener('change', async (e) => {
+                if (!activeVehicleId) return;
+                const vehicle = currentVehicleData.find(v => v.id === activeVehicleId);
+                if (!vehicle) return;
+                const vehicleRef = doc(getVehiclesCollectionRef(), activeVehicleId);
+                const updateData = {
+                    titleInHouse: e.target.checked,
+                    lastUpdated: serverTimestamp()
+                };
+                const tempVehicleState = { ...vehicle, ...updateData };
+                updateData.currentReconStatus = determineNextOverallStatus(tempVehicleState, vehicle.currentReconStatus); // Pass current status as intended
+
+                try {
+                    await updateDoc(vehicleRef, updateData);
+                    showMessageModal("Success", `Title status updated. Vehicle status is now ${updateData.currentReconStatus}.`);
+                    if (modal.style.display === 'block') openVehicleDetailModal(activeVehicleId); 
+                } catch (error) {
+                    console.error("Error updating title status:", error);
+                    showMessageModal("Error", "Failed to update title status.");
+                }
+            });
+        }
+        
+        // --- Dashboard View Update ---
+        function updateDashboardView() {
+            const dashboardListDiv = document.getElementById('dashboard-vehicle-list');
+            if (!dashboardListDiv) return;
+            dashboardListDiv.innerHTML = ''; 
+
+            const searchTerm = document.getElementById('dashboard-search').value.toLowerCase();
+            const statusFilter = document.getElementById('dashboard-status-filter').value;
+            const selectedPendingTasks = Array.from(document.querySelectorAll('#dashboard-multiselect-filter-area input[type="checkbox"]:checked'))
+                                          .map(cb => cb.dataset.filterType);
+
+
+            let vehiclesToDisplay = currentVehicleData.filter(v => v.currentReconStatus && v.currentReconStatus !== 'Sold'); 
+
+            if (statusFilter) {
+                 if (statusFilter === 'needs_attention') {
+                    vehiclesToDisplay = vehiclesToDisplay.filter(vehicle => 
+                        (!isStageCompleted(vehicle, "Mechanical") || 
+                         !isStageCompleted(vehicle, "Detailing") || 
+                         vehicle.photoStatus !== "Taken" || 
+                         !vehicle.titleInHouse) && 
+                         vehicle.currentReconStatus !== 'Lot Ready' 
+                    );
+                } else { 
+                    vehiclesToDisplay = vehiclesToDisplay.filter(v => v.currentReconStatus === statusFilter);
+                }
+            } else { 
+                 vehiclesToDisplay = vehiclesToDisplay.filter(v => v.currentReconStatus !== 'Lot Ready');
+            }
+
+            if (selectedPendingTasks.length > 0) {
+                vehiclesToDisplay = vehiclesToDisplay.filter(vehicle => {
+                    return selectedPendingTasks.every(task => {
+                        if (task === 'mechanical') return !isStageCompleted(vehicle, "Mechanical");
+                        if (task === 'detailing') return !isStageCompleted(vehicle, "Detailing");
+                        if (task === 'photos') return vehicle.photoStatus !== "Taken";
+                        if (task === 'title') return !vehicle.titleInHouse;
+                        return true;
+                    });
+                });
+            }
+
+            if (searchTerm) {
+                vehiclesToDisplay = vehiclesToDisplay.filter(vehicle => 
+                    (vehicle.vin && vehicle.vin.toLowerCase().includes(searchTerm)) ||
+                    (vehicle.stockNumber && vehicle.stockNumber.toLowerCase().includes(searchTerm)) ||
+                    (vehicle.make && vehicle.make.toLowerCase().includes(searchTerm)) ||
+                    (vehicle.model && vehicle.model.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            vehiclesToDisplay.sort((a,b) => { 
+                const aLastUpdate = a.statusHistory && a.statusHistory.length > 0 ? new Date(a.statusHistory[a.statusHistory.length-1].timestamp) : new Date(a.entryDate || 0);
+                const bLastUpdate = b.statusHistory && b.statusHistory.length > 0 ? new Date(b.statusHistory[b.statusHistory.length-1].timestamp) : new Date(b.entryDate || 0);
+                return bLastUpdate - aLastUpdate; 
+            });
+
+
+            if (vehiclesToDisplay.length === 0) {
+                dashboardListDiv.innerHTML = '<p class="text-gray-500 text-center py-8 col-span-full">No vehicles currently matching active reconditioning filters.</p>';
+                return;
+            }
+            
+            const totalActiveStagesForProgressBar = RECON_STATUSES.indexOf('Lot Ready'); 
+
+            vehiclesToDisplay.forEach(vehicle => {
+                const card = document.createElement('div');
+                card.className = 'dashboard-vehicle-card bg-white p-3 rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200 flex flex-col justify-between';
+                card.dataset.id = vehicle.id;
+                card.addEventListener('click', () => openVehicleDetailModal(vehicle.id));
+
+                let timeInCurrentStatus = "N/A";
+                const lastStatusEntry = vehicle.statusHistory && vehicle.statusHistory.length > 0 ? 
+                                        [...vehicle.statusHistory].filter(h => h.status === vehicle.currentReconStatus).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))[0] : null;
+                if(lastStatusEntry && lastStatusEntry.timestamp) {
+                    const statusStartDate = new Date(lastStatusEntry.timestamp);
+                    if(!isNaN(statusStartDate)) {
+                        timeInCurrentStatus = formatDuration(new Date() - statusStartDate);
+                    }
+                }
+                
+                let currentStageIndexForProgress = RECON_STATUSES.indexOf(vehicle.currentReconStatus);
+                if (vehicle.currentReconStatus === "Lot Ready") currentStageIndexForProgress = totalActiveStagesForProgressBar; 
+                else if (currentStageIndexForProgress > totalActiveStagesForProgressBar) currentStageIndexForProgress = totalActiveStagesForProgressBar; 
+                
+                const progressPercentage = totalActiveStagesForProgressBar > 0 ? Math.max(0, Math.min(100, (currentStageIndexForProgress / totalActiveStagesForProgressBar) * 100)) : (vehicle.currentReconStatus === "Lot Ready" ? 100 : 0);
+
+                let historyHTML = '<div class="mt-1 space-y-1 max-h-20 overflow-y-auto">'; 
+                if (vehicle.statusHistory && vehicle.statusHistory.length > 0) {
+                    const sortedDashHistory = [...vehicle.statusHistory].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    const recentHistoryToDisplay = sortedDashHistory.slice(-3); 
+
+                    recentHistoryToDisplay.forEach((entry) => { 
+                        let durationText = "";
+                        const fullHistoryIndex = sortedDashHistory.findIndex(h => h.timestamp === entry.timestamp && h.status === entry.status && h.notes === entry.notes);
+                        if (fullHistoryIndex > 0) { 
+                             const prevActualEntry = sortedDashHistory[fullHistoryIndex - 1];
+                             const prevT = new Date(prevActualEntry.timestamp);
+                             const currT = new Date(entry.timestamp);
+                             if(!isNaN(prevT) && !isNaN(currT) && currT > prevT) {
+                                durationText = ` <span class="text-gray-500">(${formatDuration(currT - prevT)} in ${prevActualEntry.status})</span>`;
+                             }
+                        }
+                         let iconHTML = '<i class="fas fa-info-circle text-gray-400"></i>'; // Default
+                        if (entry.status === "Mechanical") iconHTML = '<i class="fas fa-wrench text-yellow-500"></i>';
+                        else if (entry.status === "Detailing") iconHTML = '<i class="fas fa-spray-can text-purple-500"></i>';
+                        else if (entry.status === "Photos") iconHTML = '<i class="fas fa-camera text-pink-500"></i>';
+                        else if (entry.status === "Lot Ready") iconHTML = '<i class="fas fa-store text-green-500"></i>';
+                        else if (entry.status === "New Arrival") iconHTML = '<i class="fas fa-truck text-blue-500"></i>';
+
+                        historyHTML += `<p class="dashboard-timeline-entry">${iconHTML} <strong>${entry.status}</strong> at ${new Date(entry.timestamp).toLocaleDateString()} ${durationText}</p>`;
+                    });
+
+                     if (vehicle.currentReconStatus !== "Lot Ready" && vehicle.currentReconStatus !== "Sold") {
+                         historyHTML += `<p class="dashboard-timeline-entry"><i class="fas fa-spinner fa-spin text-blue-500 mr-1"></i><strong>${vehicle.currentReconStatus}</strong> (In progress - ${timeInCurrentStatus})</p>`;
+                     }
+                } else {
+                    historyHTML += `<p class="dashboard-timeline-entry">No history</p>`;
+                }
+                historyHTML += '</div>';
+                
+                let pendingTasksHTML = '<div class="mt-1 text-xs">';
+                const pendingItems = [];
+                if (vehicle.currentReconStatus !== "Lot Ready") { 
+                    if (!isStageCompleted(vehicle, "Mechanical")) pendingItems.push('<span class="pending-task-badge pending-mechanical"><i class="fas fa-wrench"></i> Mechanical</span>');
+                    if (!isStageCompleted(vehicle, "Detailing")) pendingItems.push('<span class="pending-task-badge pending-detailing"><i class="fas fa-spray-can"></i> Detailing</span>');
+                    if (vehicle.photoStatus !== "Taken") pendingItems.push('<span class="pending-task-badge pending-photos"><i class="fas fa-camera"></i> Photos</span>');
+                    if (!vehicle.titleInHouse) pendingItems.push('<span class="pending-task-badge pending-title"><i class="fas fa-file-alt"></i> Title</span>');
+                }
+                
+                if (pendingItems.length > 0) {
+                    pendingTasksHTML += `<strong class="text-red-600">Pending:</strong> ${pendingItems.join(' ')}`;
+                } else if (vehicle.currentReconStatus !== "Lot Ready" && vehicle.currentReconStatus !== "Sold") {
+                    pendingTasksHTML += '<span class="text-green-600"><i class="fas fa-check-circle"></i> All core tasks appear complete. Ready for Lot.</span>';
+                } else {
+                     pendingTasksHTML = ''; 
+                }
+                pendingTasksHTML += '</div>';
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-1">
+                            <div>
+                                <h4 class="text-sm font-semibold text-sky-700">${vehicle.year} ${vehicle.make} ${vehicle.model}</h4>
+                                <p class="text-xs text-gray-500">VIN: ${vehicle.vin || 'N/A'}</p>
+                                <p class="text-xs text-gray-500">Stock#: ${vehicle.stockNumber || 'N/A'}</p>
+                            </div>
+                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(vehicle.currentReconStatus)}">${vehicle.currentReconStatus}</span>
+                        </div>
+                        <div class="text-xs text-gray-600 mb-1">
+                            <p><i class="fas fa-calendar-alt mr-1 text-gray-400"></i>Age: <strong>${vehicle.ageInInventory || 0} days</strong></p>
+                            <p><i class="fas fa-clock mr-1 text-gray-400"></i>In Status: <strong>${timeInCurrentStatus}</strong></p>
+                        </div>
+                         ${pendingTasksHTML}
+                    </div>
+                    <div class="mt-2">
+                        <p class="text-xs text-gray-500 mb-1">Recon Progress:</p>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fg" style="width: ${progressPercentage}%">
+                                <span class="progress-bar-text">${progressPercentage.toFixed(0)}%</span>
+                            </div>
+                        </div>
+                        ${historyHTML}
+                    </div>
+                `;
+                dashboardListDiv.appendChild(card);
+            });
+        }
+        
+        // --- Workflow Board View Update ---
+        function updateWorkflowBoardView() {
+            const boardContainer = document.getElementById('workflow-board-container');
+            if (!boardContainer) return;
+            boardContainer.innerHTML = ''; 
+
+            WORKFLOW_COLUMNS_ORDER.forEach(statusName => {
+                const columnDiv = document.createElement('div');
+                columnDiv.className = 'workflow-column';
+                columnDiv.id = `workflow-column-${statusName.toLowerCase().replace(/\s+/g, '-')}`;
+                columnDiv.dataset.statusName = statusName; 
+
+                const vehiclesInStatus = currentVehicleData.filter(v => v.currentReconStatus === statusName && statusName !== "Sold");
+                
+                const columnHeader = document.createElement('h3');
+                columnHeader.className = 'workflow-column-header';
+                columnHeader.innerHTML = `${statusName} <span class="text-sm font-normal text-gray-500">(${vehiclesInStatus.length})</span>`;
+                columnDiv.appendChild(columnHeader);
+
+                vehiclesInStatus.forEach(vehicle => {
+                    const card = document.createElement('div');
+                    card.className = 'workflow-vehicle-card';
+                    card.dataset.id = vehicle.id;
+                    card.draggable = true; 
+                    card.addEventListener('dragstart', handleDragStart);
+                    card.addEventListener('dragend', handleDragEnd); 
+                    card.addEventListener('click', () => openVehicleDetailModal(vehicle.id));
+
+                    let pendingTasksHTML = '<div class="mt-1 text-xs">';
+                    const pendingItems = [];
+                     if (statusName !== "Lot Ready") { 
+                        if (!isStageCompleted(vehicle, "Mechanical")) pendingItems.push('<span class="pending-task-badge pending-mechanical"><i class="fas fa-wrench"></i> Mech</span>');
+                        if (!isStageCompleted(vehicle, "Detailing")) pendingItems.push('<span class="pending-task-badge pending-detailing"><i class="fas fa-spray-can"></i> Detail</span>');
+                        if (vehicle.photoStatus !== "Taken") pendingItems.push('<span class="pending-task-badge pending-photos"><i class="fas fa-camera"></i> Photos</span>');
+                        if (!vehicle.titleInHouse) pendingItems.push('<span class="pending-task-badge pending-title"><i class="fas fa-file-alt"></i> Title</span>');
+                    }
+                    
+                    if (pendingItems.length > 0) {
+                         pendingTasksHTML += `<strong class="text-red-600">Pending:</strong> ${pendingItems.join(' ')}`;
+                    } else if (statusName !== "Lot Ready") {
+                         pendingTasksHTML += '<span class="text-green-600 text-xs"><i class="fas fa-check-circle"></i> Core tasks may be complete.</span>';
+                    } else {
+                        pendingTasksHTML = ''; 
+                    }
+                    pendingTasksHTML += '</div>';
+
+                    card.innerHTML = `
+                        <h5>${vehicle.year} ${vehicle.make} ${vehicle.model}</h5>
+                        <p>VIN: ${vehicle.vin || 'N/A'}</p>
+                        <p>Stock#: ${vehicle.stockNumber || 'N/A'}</p>
+                        ${pendingTasksHTML}
+                    `;
+                    columnDiv.appendChild(card);
+                });
+                columnDiv.addEventListener('dragover', handleDragOver);
+                columnDiv.addEventListener('dragenter', handleDragEnter);
+                columnDiv.addEventListener('dragleave', handleDragLeave);
+                columnDiv.addEventListener('drop', handleDrop);
+
+                boardContainer.appendChild(columnDiv);
+            });
+        }
+
+        function handleDragStart(e) {
+            const cardElement = e.target.closest('.workflow-vehicle-card');
+            if (cardElement) {
+                draggedItemId = cardElement.dataset.id; // Set global for dragend
+                e.dataTransfer.setData('text/plain', cardElement.dataset.id); // Set data for drop
+                e.dataTransfer.effectAllowed = "move"; 
+                cardElement.style.opacity = '0.5'; 
+                console.log("Drag Start - Item ID:", cardElement.dataset.id);
+            } else {
+                e.preventDefault(); 
+                console.log("Drag Start Prevented: Not a card or child of card");
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault(); 
+            e.dataTransfer.dropEffect = "move"; 
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            const columnElement = e.currentTarget;
+            if(columnElement.classList.contains('workflow-column')) {
+                columnElement.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const columnElement = e.currentTarget;
+             if(columnElement.classList.contains('workflow-column')) {
+                columnElement.classList.remove('drag-over');
+            }
+        }
+        
+        function handleDragEnd(e) {
+            console.log("Drag End - Event Target:", e.target);
+            // Reset opacity of the source element (the card that was dragged)
+            if (e.target.classList && e.target.classList.contains('workflow-vehicle-card')) {
+                 e.target.style.opacity = '1';
+                 console.log("Drag End - Reset opacity for source e.target:", e.target.dataset.id);
+            } else if (draggedItemId) { 
+                // Fallback if e.target is not the card itself, but we have the ID
+                const draggedElement = document.querySelector(`.workflow-vehicle-card[data-id="${draggedItemId}"]`);
+                if (draggedElement) {
+                    draggedElement.style.opacity = '1';
+                    console.log("Drag End - Reset opacity using global draggedItemId:", draggedItemId);
+                }
+            }
+            
+            // Clear the global dragged item ID *after* potential use
+            draggedItemId = null; 
+            console.log("Drag End - Global draggedItemId cleared.");
+        }
+
+
+        async function handleDrop(e) {
+            e.preventDefault(); 
+            const targetColumnElement = e.currentTarget; 
+            if (targetColumnElement.classList.contains('workflow-column')) {
+                targetColumnElement.classList.remove('drag-over');
+            }
+            
+            // Use the data set in dragstart
+            const vehicleIdToUpdate = e.dataTransfer.getData('text/plain'); 
+            const targetColumnStatus = targetColumnElement.dataset.statusName; 
+            
+            console.log("Drop Event - Vehicle ID from dataTransfer:", vehicleIdToUpdate, "- Target Column Status:", targetColumnStatus);
+
+            if (!vehicleIdToUpdate || !targetColumnStatus) {
+                console.error("Drop failed: Missing vehicle ID from dataTransfer or target status.");
+                return; // No further processing if essential data is missing
+            }
+
+            const vehicle = currentVehicleData.find(v => v.id === vehicleIdToUpdate);
+            
+            if (vehicle && vehicle.currentReconStatus !== targetColumnStatus) {
+                if (targetColumnStatus === "Lot Ready" && 
+                    (!isStageCompleted(vehicle, "Mechanical") || 
+                     !isStageCompleted(vehicle, "Detailing") || 
+                     vehicle.photoStatus !== "Taken" || 
+                     !vehicle.titleInHouse )) {
+                    showMessageModal("Move Denied", "All prior stages (Mechanical, Detailing, Photos) must be complete and Title must be In-House to move to Lot Ready.");
+                    return; 
+                }
+
+                console.log(`Drop Approved: Updating ${vehicleIdToUpdate} from ${vehicle.currentReconStatus} to ${targetColumnStatus}`);
+                
+                // For drag-and-drop, make a more direct update to Firestore
+                const vehicleRef = doc(getVehiclesCollectionRef(), vehicleIdToUpdate);
+                const newHistoryEntry = {
+                    status: targetColumnStatus, // The new status after drop
+                    timestamp: new Date().toISOString(),
+                    notes: `Moved to ${targetColumnStatus} via workflow board.`,
+                    previousStatus: vehicle.currentReconStatus 
+                };
+
+                const updateData = {
+                    currentReconStatus: targetColumnStatus,
+                    statusHistory: arrayUnion(newHistoryEntry),
+                    lastUpdated: serverTimestamp()
+                };
+                 // If moving to Lot Ready, also update reconCompleteDate if not already set
+                if (targetColumnStatus === "Lot Ready" && !vehicle.reconCompleteDate) {
+                    updateData.reconCompleteDate = new Date().toISOString();
+                }
+                
+                console.log("Attempting Firestore update in handleDrop for vehicle:", vehicleIdToUpdate, "with data:", JSON.stringify(updateData, null, 2));
+                try {
+                    await updateDoc(vehicleRef, updateData);
+                    console.log("Firestore update success for vehicle:", vehicleIdToUpdate, "to status:", targetColumnStatus);
+                    showMessageModal("Success", `Vehicle moved to ${targetColumnStatus}.`);
+                    // Firestore onSnapshot listener will handle UI refresh
+                } catch (error) {
+                    console.error("Error updating vehicle status from drag-drop:", error, "Vehicle ID:", vehicleIdToUpdate);
+                    showMessageModal("Error", `Failed to move vehicle: ${error.message}`);
+                }
+
+            } else if (vehicle && vehicle.currentReconStatus === targetColumnStatus) {
+                console.log("Vehicle dropped into its current status column. No change.");
+            } else if (!vehicle) {
+                console.error("Dropped vehicle not found in current data:", vehicleIdToUpdate);
+            }
+            // draggedItemId is cleared by handleDragEnd which fires on the source element
+        }
+        
+
+        // --- Reports Tab Chart Logic ---
+        window.reportsWorkflowStatusChartInstance = null;
+        window.reportsAvgTimePerStageChartInstance = null;
+        window.reportsPhotoStatusChartInstance = null;
+        const CHART_COLORS = [
+            'rgba(54, 162, 235, 0.8)', // Blue
+            'rgba(255, 206, 86, 0.8)', // Yellow
+            'rgba(75, 192, 192, 0.8)', // Green
+            'rgba(153, 102, 255, 0.8)',// Purple
+            'rgba(255, 159, 64, 0.8)', // Orange
+            'rgba(255, 99, 132, 0.8)',  // Pink
+            'rgba(100, 220, 132, 0.8)', // Light Green
+            'rgba(200, 200, 200, 0.8)'  // Grey
+        ];
+
+
+        function updateReportsCharts() {
+            const chartInstanceMap = {
+                'reportsWorkflowStatusChart': 'reportsWorkflowStatusChartInstance',
+                'reportsAvgTimePerStageChart': 'reportsAvgTimePerStageChartInstance',
+                'reportsPhotoStatusChart': 'reportsPhotoStatusChartInstance',
+            };
+
+            const noDataMessage = (canvas) => {
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = '16px Inter, sans-serif';
+                ctx.fillStyle = '#6b7280'; 
+                ctx.fillText('No data available', canvas.width / 2, canvas.height / 2);
+                ctx.restore();
+            };
+            
+            if (!currentVehicleData || currentVehicleData.length === 0) {
+                Object.keys(chartInstanceMap).forEach(canvasId => {
+                    const instanceName = chartInstanceMap[canvasId];
+                    if (window[instanceName]) {
+                        window[instanceName].destroy();
+                        window[instanceName] = null; 
+                    }
+                    const canvas = document.getElementById(canvasId);
+                    if (canvas) {
+                         setTimeout(() => { 
+                            const currentCanvas = document.getElementById(canvasId); // Re-fetch in timeout
+                            if(currentCanvas) noDataMessage(currentCanvas);
+                        }, 50); // Delay to ensure canvas is rendered if tab switched
+                    }
+                });
+                
+                const idsToClear = ['avgTotalReconTime', 'avgPhotoCycleTime', 'avgTimeToFrontline'];
+                idsToClear.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = 'N/A';
+                });
+                
+                const areasToClear = ['detailer-performance-area', 'stage-bottleneck-area', 'vehicles-needing-photos-area', 'mechanical-cycle-time-area'];
+                areasToClear.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerHTML = '<p class="text-gray-500">No data available yet.</p>';
+                });
+                return; 
+            }
+
+            let totalReconTimeSum = 0, reconTimeCount = 0, photoCycleTimeSum = 0, photoCycleCount = 0;
+            const detailerStats = {};
+            const currentStageTimings = RECON_STATUSES.filter(s => s !== 'Sold').reduce((acc, s) => { acc[s] = {count: 0, totalDays: 0, maxDays: 0, vehicleIds: []}; return acc; }, {});
+            const mechanicalCycleData = [];
+
+            // These are defined here to be populated by the loop below for the "Average Time per Stage" chart.
+            const avgTimes = RECON_STATUSES.reduce((acc, status) => { acc[status] = 0; return acc; }, {});
+            const stageCounts = RECON_STATUSES.reduce((acc, status) => { acc[status] = 0; return acc; }, {});
+
+
+            currentVehicleData.forEach(vehicle => {
+                const sortedHistory = vehicle.statusHistory ? [...vehicle.statusHistory].sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp)) : [];
+                const arrivalEntry = sortedHistory.find(h => h.status === "New Arrival" || h.notes?.toLowerCase().includes("imported")); // Consider imported as arrival
+                const arrivalTime = arrivalEntry ? new Date(arrivalEntry.timestamp) : (vehicle.entryDate ? new Date(vehicle.entryDate) : null);
+                
+                if (vehicle.reconCompleteDate && arrivalTime && !isNaN(arrivalTime)) {
+                    const completeTime = new Date(vehicle.reconCompleteDate);
+                    if(!isNaN(completeTime) && completeTime >= arrivalTime) {
+                        totalReconTimeSum += (completeTime - arrivalTime);
+                        reconTimeCount++;
+                    }
+                }
+
+                const photosStartedEntry = sortedHistory.find(h => h.status === "Photos" && h.notes?.toLowerCase().includes("started"));
+                if (photosStartedEntry && vehicle.photoDate) { 
+                    const photosStartTime = new Date(photosStartedEntry.timestamp);
+                    const photosDoneTime = new Date(vehicle.photoDate);
+                    if (!isNaN(photosStartTime) && !isNaN(photosDoneTime) && photosDoneTime >= photosStartTime) {
+                        photoCycleTimeSum += (photosDoneTime - photosStartTime);
+                        photoCycleCount++;
+                    }
+                }
+                
+                const serviceRequestSentEntry = sortedHistory.find(h => h.notes?.toLowerCase().includes("service request sent"));
+                const mechanicalStartedActualEntry = sortedHistory.find(h => h.status === "Mechanical" && h.notes?.toLowerCase().includes("started."));
+                const mechanicalCompletedEntry = sortedHistory.find(h => h.status === "Mechanical" && h.notes?.toLowerCase().includes("completed."));
+
+                if (serviceRequestSentEntry || mechanicalStartedActualEntry || mechanicalCompletedEntry) {
+                    const entry = {
+                        id: vehicle.id, stock: vehicle.stockNumber, vin: vehicle.vin,
+                        requestSent: serviceRequestSentEntry ? new Date(serviceRequestSentEntry.timestamp) : null,
+                        serviceStart: mechanicalStartedActualEntry ? new Date(mechanicalStartedActualEntry.timestamp) : null,
+                        serviceEnd: mechanicalCompletedEntry ? new Date(mechanicalCompletedEntry.timestamp) : null,
+                        waitingTime: null, serviceTime: null
+                    };
+                    const waitStartTime = entry.requestSent || (arrivalTime && (!entry.requestSent || arrivalTime < entry.requestSent) ? arrivalTime : null);
+                    if (waitStartTime && entry.serviceStart && entry.serviceStart >= waitStartTime) {
+                        entry.waitingTime = (entry.serviceStart - waitStartTime);
+                    }
+                    if (entry.serviceStart && entry.serviceEnd && entry.serviceEnd >= entry.serviceStart) {
+                        entry.serviceTime = (entry.serviceEnd - entry.serviceStart);
+                    }
+                    mechanicalCycleData.push(entry);
+                }
+
+                // Populate avgTimes and stageCounts for "Average Time per Stage" chart
+                if (vehicle.statusHistory && vehicle.statusHistory.length > 0) { 
+                    for (let i = 0; i < sortedHistory.length; i++) {
+                        const currentStep = sortedHistory[i];
+                        if (!RECON_STATUSES.includes(currentStep.status) || currentStep.status === "Sold") continue;
+
+                        let t0 = new Date(currentStep.timestamp);
+                        let t1;
+
+                        if (i < sortedHistory.length - 1) { 
+                            t1 = new Date(sortedHistory[i+1].timestamp);
+                        } else if (vehicle.currentReconStatus === currentStep.status && currentStep.status !== "Lot Ready") { 
+                            t1 = new Date(); 
+                        } else if (currentStep.status === "Lot Ready" && vehicle.reconCompleteDate) { 
+                            t1 = new Date(vehicle.reconCompleteDate);
+                             if (i === 0 && vehicle.entryDate) t0 = new Date(vehicle.entryDate);
+                        } else {
+                            continue; 
+                        }
+                        
+                        if (!isNaN(t0) && !isNaN(t1) && t1 >= t0) {
+                            const timeInCurrentStage = (t1 - t0) / (1000 * 60 * 60 * 24); 
+                            if (timeInCurrentStage >= 0 && isFinite(timeInCurrentStage)) { 
+                                avgTimes[currentStep.status] += timeInCurrentStage;
+                                stageCounts[currentStep.status]++; 
+                            }
+                        }
+                    }
+                }
+
+
+                sortedHistory.forEach(entry => {
+                    if (entry.status === "Detailing" && entry.detailer && entry.interiorQuality && entry.exteriorQuality && entry.notes?.toLowerCase().includes("completed")) {
+                        if (!detailerStats[entry.detailer]) {
+                            detailerStats[entry.detailer] = { count: 0, totalInterior: 0, totalExterior: 0 };
+                        }
+                        detailerStats[entry.detailer].count++;
+                        detailerStats[entry.detailer].totalInterior += parseInt(entry.interiorQuality);
+                        detailerStats[entry.detailer].totalExterior += parseInt(entry.exteriorQuality);
+                    }
+                });
+
+                if (vehicle.currentReconStatus && vehicle.currentReconStatus !== 'Sold' && vehicle.currentReconStatus !== 'Lot Ready' && currentStageTimings[vehicle.currentReconStatus]) {
+                    const lastEntryForCurrentStatus = sortedHistory.filter(h => h.status === vehicle.currentReconStatus).pop();
+                    if (lastEntryForCurrentStatus && lastEntryForCurrentStatus.timestamp) {
+                        const daysInStage = (new Date() - new Date(lastEntryForCurrentStatus.timestamp)) / (1000 * 60 * 60 * 24);
+                        if (daysInStage >= 0) {
+                            currentStageTimings[vehicle.currentReconStatus].count++;
+                            currentStageTimings[vehicle.currentReconStatus].totalDays += daysInStage;
+                            currentStageTimings[vehicle.currentReconStatus].maxDays = Math.max(currentStageTimings[vehicle.currentReconStatus].maxDays, daysInStage);
+                            currentStageTimings[vehicle.currentReconStatus].vehicleIds.push(vehicle.id);
+                        }
+                    }
+                }
+            }); // End of currentVehicleData.forEach
+            
+            document.getElementById('avgTotalReconTime').textContent = reconTimeCount > 0 ? formatDuration(totalReconTimeSum / reconTimeCount) : 'N/A';
+            document.getElementById('avgPhotoCycleTime').textContent = photoCycleCount > 0 ? formatDuration(photoCycleTimeSum / photoCycleCount) : 'N/A';
+            document.getElementById('avgTimeToFrontline').textContent = reconTimeCount > 0 ? formatDuration(totalReconTimeSum / reconTimeCount) : 'N/A'; 
+
+            const mechanicalCycleTimeArea = document.getElementById('mechanical-cycle-time-area');
+            if(mechanicalCycleTimeArea){
+                mechanicalCycleTimeArea.innerHTML = '';
+                if(mechanicalCycleData.length > 0) {
+                    const table = document.createElement('table');
+                    table.className = 'min-w-full divide-y divide-gray-200 text-sm';
+                    table.innerHTML = `
+                        <thead class="bg-gray-50"><tr>
+                            <th class="px-4 py-2 text-left font-medium text-gray-500">Vehicle</th>
+                            <th class="px-4 py-2 text-left font-medium text-gray-500">Req. Sent</th>
+                            <th class="px-4 py-2 text-left font-medium text-gray-500">Mech. Start</th>
+                            <th class="px-4 py-2 text-left font-medium text-gray-500">Mech. End</th>
+                            <th class="px-4 py-2 text-left font-medium text-gray-500">Wait Time</th>
+                            <th class="px-4 py-2 text-left font-medium text-gray-500">Service Time</th>
+                        </tr></thead><tbody class="bg-white divide-y divide-gray-200"></tbody>`;
+                    const tbody = table.querySelector('tbody');
+                    mechanicalCycleData.forEach(item => {
+                        const row = tbody.insertRow();
+                        row.className = 'cursor-pointer hover:bg-gray-50';
+                        row.dataset.id = item.id;
+                        row.addEventListener('click', () => openVehicleDetailModal(item.id));
+                        row.innerHTML = `
+                            <td class="px-4 py-2">${item.stock || item.vin}</td>
+                            <td class="px-4 py-2">${item.requestSent ? item.requestSent.toLocaleDateString() : 'N/A'}</td>
+                            <td class="px-4 py-2">${item.serviceStart ? item.serviceStart.toLocaleDateString() : 'N/A'}</td>
+                            <td class="px-4 py-2">${item.serviceEnd ? item.serviceEnd.toLocaleDateString() : 'N/A'}</td>
+                            <td class="px-4 py-2">${item.waitingTime !== null ? formatDuration(item.waitingTime) : 'N/A'}</td>
+                            <td class="px-4 py-2">${item.serviceTime !== null ? formatDuration(item.serviceTime) : 'N/A'}</td>
+                        `;
+                    });
+                    mechanicalCycleTimeArea.appendChild(table);
+                } else {
+                    mechanicalCycleTimeArea.innerHTML = '<p class="text-gray-500">No mechanical service data.</p>';
+                }
+            }
+
+            const detailerPerformanceArea = document.getElementById('detailer-performance-area');
+            if (detailerPerformanceArea) {
+                detailerPerformanceArea.innerHTML = ''; 
+                if (Object.keys(detailerStats).length > 0) {
+                    const table = document.createElement('table');
+                    table.className = 'min-w-full divide-y divide-gray-200 text-sm';
+                    table.innerHTML = `
+                        <thead class="bg-gray-50"><tr>
+                            <th class="px-4 py-2 text-left font-medium text-gray-500">Detailer</th>
+                            <th class="px-4 py-2 text-left font-medium text-gray-500"># Detailed</th>
+                            <th class="px-4 py-2 text-left font-medium text-gray-500">Avg. Int</th>
+                            <th class="px-4 py-2 text-left font-medium text-gray-500">Avg. Ext</th>
+                        </tr></thead><tbody class="bg-white divide-y divide-gray-200"></tbody>`;
+                    const tbody = table.querySelector('tbody');
+                    for (const name in detailerStats) {
+                        const stats = detailerStats[name];
+                        const avgInt = stats.count > 0 ? (stats.totalInterior / stats.count).toFixed(1) : 'N/A';
+                        const avgExt = stats.count > 0 ? (stats.totalExterior / stats.count).toFixed(1) : 'N/A';
+                        tbody.insertRow().innerHTML = `
+                            <td class="px-4 py-2">${name}</td> <td class="px-4 py-2">${stats.count}</td>
+                            <td class="px-4 py-2">${avgInt}</td> <td class="px-4 py-2">${avgExt}</td>`;
+                    }
+                    detailerPerformanceArea.appendChild(table);
+                } else {
+                    detailerPerformanceArea.innerHTML = '<p class="text-gray-500">No detailing review data.</p>';
+                }
+            }
+
+            const stageBottleneckArea = document.getElementById('stage-bottleneck-area');
+            if (stageBottleneckArea) {
+                stageBottleneckArea.innerHTML = '';
+                const table = document.createElement('table');
+                table.className = 'min-w-full divide-y divide-gray-200 text-sm';
+                table.innerHTML = `
+                    <thead class="bg-gray-50"><tr>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500">Stage</th>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500"># Vehicles</th>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500">Avg. Days</th>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500">Max Days</th>
+                    </tr></thead><tbody class="bg-white divide-y divide-gray-200"></tbody>`;
+                const tbody = table.querySelector('tbody');
+                let hasBottleneckData = false;
+                RECON_STATUSES.filter(s => s !== 'Sold' && s !== 'Lot Ready').forEach(stage => {
+                    const stats = currentStageTimings[stage];
+                    if (stats && stats.count > 0) {
+                        hasBottleneckData = true;
+                        tbody.insertRow().innerHTML = `
+                            <td class="px-4 py-2">${stage}</td> <td class="px-4 py-2">${stats.count}</td>
+                            <td class="px-4 py-2">${(stats.totalDays / stats.count).toFixed(1)}</td>
+                            <td class="px-4 py-2">${stats.maxDays.toFixed(1)}</td>`;
+                    }
+                });
+                if(hasBottleneckData) stageBottleneckArea.appendChild(table);
+                else stageBottleneckArea.innerHTML = '<p class="text-gray-500">No active recon vehicles for bottleneck analysis.</p>';
+            }
+            
+            const vehiclesNeedingPhotosArea = document.getElementById('vehicles-needing-photos-area');
+            if (vehiclesNeedingPhotosArea) {
+                vehiclesNeedingPhotosArea.innerHTML = '';
+                const needingPhotos = currentVehicleData.filter(v => v.photoStatus === 'Not Taken' && isStageCompleted(v, "Detailing") && v.currentReconStatus !== 'Sold' && v.currentReconStatus !== 'Lot Ready');
+                if (needingPhotos.length > 0) {
+                    const table = document.createElement('table');
+                    table.className = 'min-w-full divide-y divide-gray-200 text-sm';
+                    table.innerHTML = `
+                        <thead class="bg-gray-50"><tr>
+                            <th class="px-4 py-2 text-left font-medium text-gray-500">Stock#</th> <th class="px-4 py-2 text-left font-medium text-gray-500">VIN</th>
+                            <th class="px-4 py-2 text-left font-medium text-gray-500">Vehicle</th> <th class="px-4 py-2 text-left font-medium text-gray-500">Status</th>
+                        </tr></thead><tbody class="bg-white divide-y divide-gray-200"></tbody>`;
+                    const tbody = table.querySelector('tbody');
+                    needingPhotos.forEach(v => {
+                        const row = tbody.insertRow();
+                        row.dataset.id = v.id; 
+                        row.className = 'cursor-pointer hover:bg-gray-50';
+                        row.innerHTML = `
+                            <td class="px-4 py-2">${v.stockNumber || 'N/A'}</td> <td class="px-4 py-2">${v.vin || 'N/A'}</td>
+                            <td class="px-4 py-2">${v.year} ${v.make} ${v.model}</td> <td class="px-4 py-2">${v.currentReconStatus}</td>`;
+                    });
+                    vehiclesNeedingPhotosArea.appendChild(table);
+                    tbody.addEventListener('click', (e) => {
+                        const row = e.target.closest('tr');
+                        if (row && row.dataset.id) openVehicleDetailModal(row.dataset.id);
+                    });
+                } else {
+                    vehiclesNeedingPhotosArea.innerHTML = '<p class="text-gray-500">No detailed vehicles currently awaiting photos.</p>';
+                }
+            }
+
+            // Chart Updates
+            const activeStatusCounts = RECON_STATUSES.filter(s => s !== "Sold").reduce((acc, status) => { acc[status] = 0; return acc; }, {});
+            currentVehicleData.filter(v => v.currentReconStatus !== "Sold").forEach(v => {
+                if (v.currentReconStatus && activeStatusCounts.hasOwnProperty(v.currentReconStatus)) activeStatusCounts[v.currentReconStatus]++;
+            });
+            if (window.reportsWorkflowStatusChartInstance) window.reportsWorkflowStatusChartInstance.destroy();
+            window.reportsWorkflowStatusChartInstance = new Chart(document.getElementById('reportsWorkflowStatusChart').getContext('2d'), {
+                type: 'doughnut', data: { labels: RECON_STATUSES.filter(s => s !== "Sold"), datasets: [{ data: RECON_STATUSES.filter(s => s !== "Sold").map(s => activeStatusCounts[s]), backgroundColor: CHART_COLORS.slice(0, RECON_STATUSES.length -1) }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+            });
+
+            // Using the avgTimes and stageCounts populated in the main currentVehicleData.forEach loop
+            const avgTimeData = RECON_STATUSES.filter(s => s !== "Sold").map(status => {
+                 // Ensure stageCounts and avgTimes have the property 'status' before trying to access it.
+                if (stageCounts.hasOwnProperty(status) && avgTimes.hasOwnProperty(status)) {
+                    return stageCounts[status] > 0 ? parseFloat((avgTimes[status] / stageCounts[status]).toFixed(1)) : 0;
+                }
+                console.warn(`Status ${status} missing in stageCounts or avgTimes during avgTimeData calculation in updateReportsCharts.`);
+                return 0; // Default if status is unexpectedly missing
+            });
+
+            if (window.reportsAvgTimePerStageChartInstance) window.reportsAvgTimePerStageChartInstance.destroy();
+            window.reportsAvgTimePerStageChartInstance = new Chart(document.getElementById('reportsAvgTimePerStageChart').getContext('2d'), {
+                type: 'bar', data: { labels: RECON_STATUSES.filter(s => s !== "Sold"), datasets: [{ label: 'Avg Days in Stage', data: avgTimeData, backgroundColor: CHART_COLORS.slice(0, RECON_STATUSES.length -1) }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: 'Average Days'} } }, plugins: { legend: { display: false } } }
+            });
+            
+            const photoStatusCounts = { "Not Taken": 0, "Taken": 0 }; 
+            currentVehicleData.filter(v => v.currentReconStatus !== "Sold").forEach(v => v.photoStatus === "Taken" ? photoStatusCounts["Taken"]++ : photoStatusCounts["Not Taken"]++);
+            if (window.reportsPhotoStatusChartInstance) window.reportsPhotoStatusChartInstance.destroy();
+            window.reportsPhotoStatusChartInstance = new Chart(document.getElementById('reportsPhotoStatusChart').getContext('2d'), {
+                type: 'pie', data: { labels: Object.keys(photoStatusCounts), datasets: [{ data: Object.values(photoStatusCounts), backgroundColor: [CHART_COLORS[5], CHART_COLORS[2]] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+            });
+        }
+        
+        const messageModal = document.getElementById('message-modal');
+        const messageModalTitle = document.getElementById('message-modal-title');
+        const messageModalText = document.getElementById('message-modal-text');
+        const messageModalOkButton = document.getElementById('message-modal-ok-button');
+        const closeMessageModalButton = messageModal.querySelector('.close-message-modal');
+
+        async function showConfirmModal(title, text) {
+            return new Promise((resolve) => {
+                const confirmModal = document.createElement('div');
+                confirmModal.className = 'modal fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-[200]';
+                confirmModal.style.display = 'flex';
+                
+                confirmModal.innerHTML = `
+                    <div class="modal-content bg-white p-6 rounded-lg shadow-xl w-full max-w-md mx-auto">
+                        <h3 class="text-xl font-semibold mb-4">${title}</h3>
+                        <p class="mb-6">${text}</p>
+                        <div class="flex justify-end space-x-3">
+                            <button id="confirm-cancel-button" class="py-2 px-4 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition">Cancel</button>
+                            <button id="confirm-ok-button" class="py-2 px-4 bg-red-500 text-white rounded-md hover:bg-red-600 transition">Confirm</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(confirmModal);
+
+                document.getElementById('confirm-ok-button').onclick = () => {
+                    document.body.removeChild(confirmModal);
+                    resolve(true);
+                };
+                document.getElementById('confirm-cancel-button').onclick = () => {
+                    document.body.removeChild(confirmModal);
+                    resolve(false);
+                };
+            });
+        }
+
+
+        function showMessageModal(title, text) {
+            messageModalTitle.textContent = title;
+            messageModalText.innerHTML = text.replace(/\n/g, '<br>'); 
+            messageModal.style.display = 'block';
+        }
+        messageModalOkButton.onclick = () => messageModal.style.display = 'none';
+        closeMessageModalButton.onclick = () => messageModal.style.display = 'none';
+        window.addEventListener('click', (event) => {
+            if (event.target == messageModal) {
+                messageModal.style.display = 'none';
+            }
+        });
+
+        function handlePapaParseError(statusDivId) {
+            const targetDiv = statusDivId ? document.getElementById(statusDivId) : null; // Can be null if called from generic error
+            const errorMessage = 'Error: CSV parsing library (PapaParse) is not available. CSV features are disabled.';
+            if (targetDiv) {
+                targetDiv.textContent = errorMessage;
+                targetDiv.className = 'mt-4 text-red-500 font-semibold';
+            } else { // If no specific div, update the general CSV library status div
+                 const generalCsvStatusDiv = document.getElementById('csv-library-status');
+                 if(generalCsvStatusDiv) {
+                    generalCsvStatusDiv.innerHTML = `<div class="flex items-start"><i class="fas fa-times-circle text-red-500 fa-lg mr-3 mt-1"></i><div><strong class="font-semibold">Critical Library Error: PapaParse Failed to Load</strong><br>CSV features are disabled. Check console.</div></div>`;
+                    generalCsvStatusDiv.className = 'mb-4 p-4 rounded-md text-sm bg-red-50 border-l-4 border-red-400 text-red-700';
+                 }
+            }
+            console.error("window.Papa is undefined.");
+            showMessageModal("Library Error", "CSV Library (PapaParse) failed to load. CSV upload and export functionality will be unavailable. Please check your internet connection and browser console, then try refreshing the page.");
+        }
+
+
+        document.getElementById('export-csv-button').addEventListener('click', () => {
+            if (currentVehicleData.length === 0) {
+                showMessageModal("Info", "No data to export.");
+                return;
+            }
+            if (typeof window.Papa === 'undefined') { 
+                handlePapaParseError(null); 
+                return;
+            }
+            
+             const headers = [
+                "id", "stockNumber", "vin", "year", "make", "model", "bodyStyle", "trimLevel", 
+                "extColor", "intColor", "mileage", "vehicleType", "ageInInventory", "lotLocation",
+                "currentReconStatus", "purchaseDate", "entryDate", "photoStatus", "photoDate", 
+                "notes", "totalReconCost", "reconCompleteDate", "daysInRecon", "retailDate",
+                "acquisitionType", "titleInHouse", 
+                "qualityReview", "statusHistory"
+            ];
+            
+            const csvData = currentVehicleData.map(vehicle => {
+                const row = {};
+                headers.forEach(header => {
+                    if (header === "statusHistory") row[header] = JSON.stringify(vehicle.statusHistory || []);
+                    else if (header === "qualityReview") row[header] = JSON.stringify(vehicle.qualityReview || {});
+                    else row[header] = vehicle[header] !== undefined && vehicle[header] !== null ? String(vehicle[header]) : '';
+                });
+                return row;
+            });
+
+            const csvString = window.Papa.unparse(csvData, { header: true }); 
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            if (link.download !== undefined) { 
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `recon_export_${new Date().toISOString().slice(0,10)}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                 showMessageModal("Success", "Data exported to CSV successfully.");
+            } else {
+                showMessageModal("Error", "CSV export is not supported in this browser.");
+            }
+        });
+        
+        // --- Detailer Management ---
+        const addDetailerButton = document.getElementById('add-detailer-button');
+        const newDetailerNameInput = document.getElementById('new-detailer-name');
+        const detailerListDiv = document.getElementById('detailer-list');
+
+        async function loadDetailerNames() {
+            const settingsDocRef = getSettingsDocRef();
+            if (!settingsDocRef) return;
+            try {
+                const docSnap = await getDoc(settingsDocRef);
+                if (docSnap.exists() && Array.isArray(docSnap.data().detailers)) { // Ensure it's an array
+                    detailerNames = docSnap.data().detailers;
+                } else {
+                    detailerNames = []; 
+                    await setDoc(settingsDocRef, { detailers: [] }, {merge: true}); 
+                }
+                renderDetailerList();
+                populateDetailerDropdownInModal();
+            } catch (error) {
+                console.error("Error loading detailer names:", error);
+            }
+        }
+
+        function renderDetailerList() {
+            detailerListDiv.innerHTML = '';
+            if (detailerNames.length === 0) {
+                detailerListDiv.innerHTML = '<p class="text-gray-500">No detailers configured yet.</p>';
+                return;
+            }
+            const ul = document.createElement('ul');
+            ul.className = 'list-disc pl-5';
+            detailerNames.forEach(name => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center py-1';
+                li.textContent = name;
+                const deleteButton = document.createElement('button');
+                deleteButton.innerHTML = '<i class="fas fa-times text-red-500 hover:text-red-700"></i>';
+                deleteButton.className = 'ml-2 p-1';
+                deleteButton.onclick = async () => {
+                    if (await showConfirmModal("Delete Detailer", `Are you sure you want to delete detailer "${name}"?`)) {
+                        await deleteDetailer(name);
+                    }
+                };
+                li.appendChild(deleteButton);
+                ul.appendChild(li);
+            });
+            detailerListDiv.appendChild(ul);
+        }
+        
+        function populateDetailerDropdownInModal() {
+            const select = document.getElementById('modal-detailer-name');
+            if (!select) return;
+            const currentValue = select.value; 
+            select.innerHTML = '<option value="">Select Detailer</option>';
+            detailerNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                if (name === currentValue) option.selected = true;
+                select.appendChild(option);
+            });
+        }
+
+        addDetailerButton.addEventListener('click', async () => {
+            const name = newDetailerNameInput.value.trim();
+            if (name && !detailerNames.includes(name)) {
+                const settingsDocRef = getSettingsDocRef();
+                if (!settingsDocRef) return;
+                try {
+                    await updateDoc(settingsDocRef, { detailers: arrayUnion(name) });
+                    detailerNames.push(name); detailerNames.sort(); 
+                    renderDetailerList(); populateDetailerDropdownInModal();
+                    newDetailerNameInput.value = '';
+                    showMessageModal("Success", `Detailer "${name}" added.`);
+                } catch (error) { console.error("Error adding detailer:", error); showMessageModal("Error", "Failed to add detailer."); }
+            } else if (detailerNames.includes(name)) showMessageModal("Info", `Detailer "${name}" already exists.`);
+            else showMessageModal("Info", "Please enter a detailer name.");
+        });
+
+        async function deleteDetailer(name) {
+            const settingsDocRef = getSettingsDocRef();
+            if (!settingsDocRef) return;
+            try {
+                await updateDoc(settingsDocRef, { detailers: arrayRemove(name) });
+                detailerNames = detailerNames.filter(d => d !== name);
+                renderDetailerList(); populateDetailerDropdownInModal();
+                showMessageModal("Success", `Detailer "${name}" removed.`);
+            } catch (error) { console.error("Error deleting detailer:", error); showMessageModal("Error", "Failed to remove detailer."); }
+        }
+
+        // --- Initial Setup ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const csvLibraryStatusDiv = document.getElementById('csv-library-status');
+            const elementsToDisable = [
+                document.getElementById('upload-csv-button'),
+                document.getElementById('export-csv-button'),
+                document.getElementById('sync-google-sheet-button'),
+                document.getElementById('refresh-google-sheet-button'),
+                document.getElementById('csv-file-input')
+            ];
+
+            if (typeof window.Papa === 'undefined') {
+                 console.error("CRITICAL: window.Papa is undefined after DOMContentLoaded.");
+                 const papaScriptTag = document.querySelector('script[src*="papaparse"]');
+                 const papaCDN = papaScriptTag ? `<code>${papaScriptTag.src}</code>` : 'the configured CDN';
+                 const errorMessageHTML = `<div class="flex items-start"><i class="fas fa-times-circle text-red-500 fa-lg mr-3 mt-1"></i><div><strong class="font-semibold">Critical Library Error: PapaParse Failed to Load</strong><br>The CSV library (PapaParse) could not be loaded from ${papaCDN}. CSV features are disabled. Check network, console, and try refreshing.</div></div>`;
+                 
+                 if(csvLibraryStatusDiv) {
+                    csvLibraryStatusDiv.innerHTML = errorMessageHTML;
+                    csvLibraryStatusDiv.className = 'mb-4 p-4 rounded-md text-sm bg-red-50 border-l-4 border-red-400 text-red-700';
+                 }
+                 elementsToDisable.forEach(el => { if (el) { el.disabled = true; el.classList.add('disabled-button'); }});
+                 showMessageModal("Library Load Failed", "The CSV library (PapaParse) failed to load. CSV features will be disabled. Please check console and 'Upload Data' tab for details.");
+            } else {
+                console.log("PapaParse loaded at DOMContentLoaded.");
+                 if(csvLibraryStatusDiv) {
+                    csvLibraryStatusDiv.innerHTML = '<div class="flex items-center"><i class="fas fa-check-circle text-green-500 fa-lg mr-3"></i><div>CSV Processing Library (PapaParse) loaded successfully.</div></div>';
+                    csvLibraryStatusDiv.className = 'mb-4 p-4 rounded-md text-sm bg-green-50 border-l-4 border-green-400 text-green-700';
+                 }
+            }
+            
+            await initializeFirebase(); 
+            document.querySelector('.tab-button[data-tab="dashboard"]').click(); 
+        });
+
+    </script>
+</body>
+</html>

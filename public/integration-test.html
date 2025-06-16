@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Recon Integration Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .test-section { margin-bottom: 2rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; }
+        .test-pass { background-color: #f0fdf4; border-color: #22c55e; }
+        .test-fail { background-color: #fef2f2; border-color: #ef4444; }
+        .test-pending { background-color: #fffbeb; border-color: #f59e0b; }
+        .test-result { font-family: monospace; font-size: 0.875rem; }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Vehicle Reconditioning Tracker - Integration Test</h1>
+            <p class="text-gray-600 mt-2">Comprehensive test of all system components</p>
+            <div class="mt-4">
+                <button onclick="runAllTests()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Run All Tests
+                </button>
+                <button onclick="clearResults()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 ml-2">
+                    Clear Results
+                </button>
+            </div>
+        </header>
+
+        <div id="test-results">
+            <!-- Backend API Tests -->
+            <div id="backend-tests" class="test-section test-pending">
+                <h2 class="text-xl font-semibold mb-4">🔧 Backend API Tests</h2>
+                <div class="test-result" id="backend-result">Pending...</div>
+            </div>
+
+            <!-- CSV Functionality Tests -->
+            <div id="csv-tests" class="test-section test-pending">
+                <h2 class="text-xl font-semibold mb-4">📊 CSV Integration Tests</h2>
+                <div class="test-result" id="csv-result">Pending...</div>
+            </div>
+
+            <!-- Admin Panel Tests -->
+            <div id="admin-tests" class="test-section test-pending">
+                <h2 class="text-xl font-semibold mb-4">⚙️ Admin Panel Tests</h2>
+                <div class="test-result" id="admin-result">Pending...</div>
+            </div>
+
+            <!-- Frontend Navigation Tests -->
+            <div id="frontend-tests" class="test-section test-pending">
+                <h2 class="text-xl font-semibold mb-4">🖥️ Frontend Navigation Tests</h2>
+                <div class="test-result" id="frontend-result">Pending...</div>
+            </div>
+
+            <!-- Data Persistence Tests -->
+            <div id="data-tests" class="test-section test-pending">
+                <h2 class="text-xl font-semibold mb-4">💾 Data Management Tests</h2>
+                <div class="test-result" id="data-result">Pending...</div>
+            </div>
+        </div>
+
+        <div id="overall-status" class="mt-8 p-4 rounded-lg bg-blue-50 border border-blue-200">
+            <h3 class="text-lg font-semibold">Overall Test Status: <span id="status-text">Not Started</span></h3>
+            <div class="mt-2">
+                <div class="bg-gray-200 rounded-full h-4">
+                    <div id="progress-bar" class="bg-blue-600 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="text-sm text-gray-600 mt-1" id="progress-text">0% Complete</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testResults = {};
+        let totalTests = 5;
+        let completedTests = 0;
+
+        async function runAllTests() {
+            completedTests = 0;
+            updateProgress();
+            document.getElementById('status-text').textContent = 'Running...';
+            
+            await testBackendAPI();
+            await testCSVFunctionality();
+            await testAdminPanel();
+            await testFrontendNavigation();
+            await testDataManagement();
+            
+            showOverallResults();
+        }
+
+        async function testBackendAPI() {
+            const section = document.getElementById('backend-tests');
+            const result = document.getElementById('backend-result');
+            
+            section.className = 'test-section test-pending';
+            result.innerHTML = 'Testing backend endpoints...';
+            
+            try {
+                const tests = [
+                    { name: 'Server Health', url: '/api/inventory/current' },
+                    { name: 'Detailers API', url: '/api/detailers' },
+                    { name: 'Admin Panel', url: '/admin' }
+                ];
+                
+                let results = [];
+                for (const test of tests) {
+                    try {
+                        const response = await fetch(test.url);
+                        const success = response.ok;
+                        results.push(`✅ ${test.name}: ${success ? 'PASS' : 'FAIL'} (${response.status})`);
+                    } catch (error) {
+                        results.push(`❌ ${test.name}: ERROR - ${error.message}`);
+                    }
+                }
+                
+                const allPassed = results.every(r => r.includes('✅'));
+                section.className = `test-section ${allPassed ? 'test-pass' : 'test-fail'}`;
+                result.innerHTML = results.join('<br>');
+                testResults.backend = allPassed;
+                
+            } catch (error) {
+                section.className = 'test-section test-fail';
+                result.innerHTML = `❌ Backend test failed: ${error.message}`;
+                testResults.backend = false;
+            }
+            
+            completedTests++;
+            updateProgress();
+        }
+
+        async function testCSVFunctionality() {
+            const section = document.getElementById('csv-tests');
+            const result = document.getElementById('csv-result');
+            
+            section.className = 'test-section test-pending';
+            result.innerHTML = 'Testing CSV integration...';
+            
+            try {
+                // Test current inventory endpoint
+                const inventoryResponse = await fetch('/api/inventory/current');
+                const inventoryData = await inventoryResponse.json();
+                
+                // Test CSV file access
+                const csvResponse = await fetch(inventoryData.url);
+                const csvText = await csvResponse.text();
+                
+                const results = [
+                    `✅ Inventory API: ${inventoryResponse.ok ? 'PASS' : 'FAIL'}`,
+                    `✅ CSV File Access: ${csvResponse.ok ? 'PASS' : 'FAIL'}`,
+                    `✅ CSV Content: ${csvText.length > 0 ? 'PASS' : 'FAIL'} (${csvText.length} bytes)`,
+                    `ℹ️ Current File: ${inventoryData.filename}`
+                ];
+                
+                const allPassed = inventoryResponse.ok && csvResponse.ok && csvText.length > 0;
+                section.className = `test-section ${allPassed ? 'test-pass' : 'test-fail'}`;
+                result.innerHTML = results.join('<br>');
+                testResults.csv = allPassed;
+                
+            } catch (error) {
+                section.className = 'test-section test-fail';
+                result.innerHTML = `❌ CSV test failed: ${error.message}`;
+                testResults.csv = false;
+            }
+            
+            completedTests++;
+            updateProgress();
+        }
+
+        async function testAdminPanel() {
+            const section = document.getElementById('admin-tests');
+            const result = document.getElementById('admin-result');
+            
+            section.className = 'test-section test-pending';
+            result.innerHTML = 'Testing admin panel...';
+            
+            try {
+                const adminResponse = await fetch('/admin');
+                const adminHtml = await adminResponse.text();
+                
+                const results = [
+                    `✅ Admin Panel Access: ${adminResponse.ok ? 'PASS' : 'FAIL'}`,
+                    `✅ Admin HTML Content: ${adminHtml.includes('Vehicle Recon - Admin Panel') ? 'PASS' : 'FAIL'}`,
+                    `✅ Admin Navigation: ${adminHtml.includes('View App') ? 'PASS' : 'FAIL'}`
+                ];
+                
+                const allPassed = adminResponse.ok && adminHtml.includes('Vehicle Recon - Admin Panel');
+                section.className = `test-section ${allPassed ? 'test-pass' : 'test-fail'}`;
+                result.innerHTML = results.join('<br>');
+                testResults.admin = allPassed;
+                
+            } catch (error) {
+                section.className = 'test-section test-fail';
+                result.innerHTML = `❌ Admin panel test failed: ${error.message}`;
+                testResults.admin = false;
+            }
+            
+            completedTests++;
+            updateProgress();
+        }
+
+        async function testFrontendNavigation() {
+            const section = document.getElementById('frontend-tests');
+            const result = document.getElementById('frontend-result');
+            
+            section.className = 'test-section test-pending';
+            result.innerHTML = 'Testing frontend navigation...';
+            
+            try {
+                const mainResponse = await fetch('/');
+                const mainHtml = await mainResponse.text();
+                
+                const results = [
+                    `✅ Main App Access: ${mainResponse.ok ? 'PASS' : 'FAIL'}`,
+                    `✅ Admin Button Present: ${mainHtml.includes('admin-button') ? 'PASS' : 'FAIL'}`,
+                    `✅ Navigation Tabs: ${mainHtml.includes('data-tab="dashboard"') ? 'PASS' : 'FAIL'}`,
+                    `✅ Main JS Loaded: ${mainHtml.includes('main.js') ? 'PASS' : 'FAIL'}`
+                ];
+                
+                const allPassed = mainResponse.ok && mainHtml.includes('admin-button') && mainHtml.includes('main.js');
+                section.className = `test-section ${allPassed ? 'test-pass' : 'test-fail'}`;
+                result.innerHTML = results.join('<br>');
+                testResults.frontend = allPassed;
+                
+            } catch (error) {
+                section.className = 'test-section test-fail';
+                result.innerHTML = `❌ Frontend test failed: ${error.message}`;
+                testResults.frontend = false;
+            }
+            
+            completedTests++;
+            updateProgress();
+        }
+
+        async function testDataManagement() {
+            const section = document.getElementById('data-tests');
+            const result = document.getElementById('data-result');
+            
+            section.className = 'test-section test-pending';
+            result.innerHTML = 'Testing data management...';
+            
+            try {
+                const detailersResponse = await fetch('/api/detailers');
+                const detailersData = await detailersResponse.json();
+                
+                const results = [
+                    `✅ Detailers API: ${detailersResponse.ok ? 'PASS' : 'FAIL'}`,
+                    `✅ Detailers Data: ${Array.isArray(detailersData) ? 'PASS' : 'FAIL'}`,
+                    `ℹ️ Active Detailers: ${detailersData.filter(d => d.active).length}`,
+                    `ℹ️ Total Detailers: ${detailersData.length}`
+                ];
+                
+                const allPassed = detailersResponse.ok && Array.isArray(detailersData);
+                section.className = `test-section ${allPassed ? 'test-pass' : 'test-fail'}`;
+                result.innerHTML = results.join('<br>');
+                testResults.data = allPassed;
+                
+            } catch (error) {
+                section.className = 'test-section test-fail';
+                result.innerHTML = `❌ Data management test failed: ${error.message}`;
+                testResults.data = false;
+            }
+            
+            completedTests++;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const percentage = (completedTests / totalTests) * 100;
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+            document.getElementById('progress-text').textContent = `${percentage.toFixed(0)}% Complete`;
+        }
+
+        function showOverallResults() {
+            const passedTests = Object.values(testResults).filter(Boolean).length;
+            const totalTests = Object.keys(testResults).length;
+            const allPassed = passedTests === totalTests;
+            
+            const statusEl = document.getElementById('status-text');
+            const overallEl = document.getElementById('overall-status');
+            
+            if (allPassed) {
+                statusEl.textContent = `All Tests Passed! (${passedTests}/${totalTests})`;
+                overallEl.className = 'mt-8 p-4 rounded-lg bg-green-50 border border-green-200';
+            } else {
+                statusEl.textContent = `${passedTests}/${totalTests} Tests Passed`;
+                overallEl.className = 'mt-8 p-4 rounded-lg bg-red-50 border border-red-200';
+            }
+        }
+
+        function clearResults() {
+            testResults = {};
+            completedTests = 0;
+            updateProgress();
+            document.getElementById('status-text').textContent = 'Not Started';
+            document.getElementById('overall-status').className = 'mt-8 p-4 rounded-lg bg-blue-50 border border-blue-200';
+            
+            document.querySelectorAll('.test-section').forEach(section => {
+                section.className = 'test-section test-pending';
+            });
+            
+            document.querySelectorAll('.test-result').forEach(result => {
+                result.innerHTML = 'Pending...';
+            });
+        }
+    </script>
+</body>
+</html>

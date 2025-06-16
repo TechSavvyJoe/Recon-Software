@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Tracker Comprehensive Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-section { border: 2px solid #e5e7eb; border-radius: 8px; margin: 16px 0; padding: 16px; }
+        .test-pass { border-color: #10b981; background-color: #ecfdf5; }
+        .test-fail { border-color: #ef4444; background-color: #fef2f2; }
+        .test-warn { border-color: #f59e0b; background-color: #fffbeb; }
+        .test-result { padding: 8px; margin: 4px 0; border-radius: 4px; font-family: monospace; }
+        .pass { background-color: #d1fae5; color: #065f46; }
+        .fail { background-color: #fee2e2; color: #991b1b; }
+        .warn { background-color: #fef3c7; color: #92400e; }
+        .info { background-color: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-4xl font-bold text-center mb-8">🔧 Vehicle Tracker Comprehensive Test Suite</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Tab Functionality Test -->
+            <div id="tab-test-section" class="test-section">
+                <h2 class="text-2xl font-semibold mb-4">📑 Tab Functionality Test</h2>
+                <div id="tab-test-results"></div>
+                <button onclick="testTabFunctionality()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Test All Tabs
+                </button>
+            </div>
+
+            <!-- Vehicle Profile Test -->
+            <div id="vehicle-test-section" class="test-section">
+                <h2 class="text-2xl font-semibold mb-4">🚗 Vehicle Profile Test</h2>
+                <div id="vehicle-test-results"></div>
+                <button onclick="testVehicleProfile()" class="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    Test Vehicle Functions
+                </button>
+            </div>
+
+            <!-- Data Operations Test -->
+            <div id="data-test-section" class="test-section">
+                <h2 class="text-2xl font-semibold mb-4">💾 Data Operations Test</h2>
+                <div id="data-test-results"></div>
+                <button onclick="testDataOperations()" class="mt-4 bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    Test Data Functions
+                </button>
+            </div>
+
+            <!-- UI Elements Test -->
+            <div id="ui-test-section" class="test-section">
+                <h2 class="text-2xl font-semibold mb-4">🎨 UI Elements Test</h2>
+                <div id="ui-test-results"></div>
+                <button onclick="testUIElements()" class="mt-4 bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                    Test UI Components
+                </button>
+            </div>
+
+            <!-- Modal Test -->
+            <div id="modal-test-section" class="test-section">
+                <h2 class="text-2xl font-semibold mb-4">🪟 Modal Test</h2>
+                <div id="modal-test-results"></div>
+                <button onclick="testModals()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    Test Modals
+                </button>
+            </div>
+
+            <!-- Performance Test -->
+            <div id="perf-test-section" class="test-section">
+                <h2 class="text-2xl font-semibold mb-4">⚡ Performance Test</h2>
+                <div id="perf-test-results"></div>
+                <button onclick="testPerformance()" class="mt-4 bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                    Test Performance
+                </button>
+            </div>
+        </div>
+
+        <!-- Run All Tests -->
+        <div class="text-center mt-8">
+            <button onclick="runAllTests()" class="bg-gray-800 text-white px-8 py-4 rounded-lg text-xl font-semibold hover:bg-gray-900">
+                🚀 Run Complete Test Suite
+            </button>
+        </div>
+
+        <!-- Test Results Summary -->
+        <div id="test-summary" class="mt-8 p-6 bg-white rounded-lg shadow-lg" style="display: none;">
+            <h2 class="text-3xl font-bold text-center mb-4">Test Results Summary</h2>
+            <div id="summary-content" class="text-center"></div>
+        </div>
+    </div>
+
+    <!-- Open the main app in iframe for testing -->
+    <iframe id="app-frame" src="../public/index.html" style="display: none;" onload="appLoaded()"></iframe>
+
+    <script>
+        let appWindow = null;
+        let testResults = {
+            pass: 0,
+            fail: 0,
+            warn: 0,
+            total: 0
+        };
+
+        function appLoaded() {
+            appWindow = document.getElementById('app-frame').contentWindow;
+            console.log('App loaded for testing');
+        }
+
+        function logResult(category, test, status, message) {
+            const resultsDiv = document.getElementById(category + '-test-results');
+            const resultClass = status === 'pass' ? 'pass' : status === 'fail' ? 'fail' : status === 'warn' ? 'warn' : 'info';
+            const icon = status === 'pass' ? '✅' : status === 'fail' ? '❌' : status === 'warn' ? '⚠️' : 'ℹ️';
+            
+            resultsDiv.innerHTML += `<div class="test-result ${resultClass}">${icon} ${test}: ${message}</div>`;
+            
+            testResults[status]++;
+            testResults.total++;
+            
+            // Update section styling
+            const section = document.getElementById(category + '-test-section');
+            if (status === 'fail') {
+                section.classList.add('test-fail');
+            } else if (status === 'warn' && !section.classList.contains('test-fail')) {
+                section.classList.add('test-warn');
+            } else if (status === 'pass' && !section.classList.contains('test-fail') && !section.classList.contains('test-warn')) {
+                section.classList.add('test-pass');
+            }
+        }
+
+        function clearResults() {
+            testResults = { pass: 0, fail: 0, warn: 0, total: 0 };
+            document.querySelectorAll('[id$="-test-results"]').forEach(div => div.innerHTML = '');
+            document.querySelectorAll('.test-section').forEach(section => {
+                section.classList.remove('test-pass', 'test-fail', 'test-warn');
+            });
+        }
+
+        async function testTabFunctionality() {
+            const category = 'tab';
+            
+            try {
+                // Test if all tab buttons exist
+                const tabs = ['dashboard', 'workflow', 'inventory', 'reports', 'upload', 'detailers'];
+                
+                if (!appWindow) {
+                    logResult(category, 'App Access', 'fail', 'Cannot access main app window');
+                    return;
+                }
+
+                tabs.forEach(tabId => {
+                    const tabButton = appWindow.document.querySelector(`[data-tab="${tabId}"]`);
+                    const tabContent = appWindow.document.getElementById(`${tabId}-content`);
+                    
+                    if (tabButton) {
+                        logResult(category, `${tabId} tab button`, 'pass', 'Tab button exists');
+                    } else {
+                        logResult(category, `${tabId} tab button`, 'fail', 'Tab button missing');
+                    }
+                    
+                    if (tabContent) {
+                        logResult(category, `${tabId} content`, 'pass', 'Tab content div exists');
+                    } else {
+                        logResult(category, `${tabId} content`, 'fail', 'Tab content div missing');
+                    }
+                });
+
+                // Test tab switching functionality
+                if (typeof appWindow.switchTab === 'function') {
+                    logResult(category, 'switchTab function', 'pass', 'Function exists and callable');
+                    
+                    // Test switching to each tab
+                    tabs.forEach(tabId => {
+                        try {
+                            appWindow.switchTab(tabId);
+                            const activeContent = appWindow.document.querySelector('.tab-content.active');
+                            if (activeContent && activeContent.id === `${tabId}-content`) {
+                                logResult(category, `Switch to ${tabId}`, 'pass', 'Tab switching works');
+                            } else {
+                                logResult(category, `Switch to ${tabId}`, 'fail', 'Tab not activated properly');
+                            }
+                        } catch (e) {
+                            logResult(category, `Switch to ${tabId}`, 'fail', `Error: ${e.message}`);
+                        }
+                    });
+                } else {
+                    logResult(category, 'switchTab function', 'fail', 'Function missing or not callable');
+                }
+
+            } catch (error) {
+                logResult(category, 'Tab Test', 'fail', `Unexpected error: ${error.message}`);
+            }
+        }
+
+        async function testVehicleProfile() {
+            const category = 'vehicle';
+            
+            try {
+                if (!appWindow) {
+                    logResult(category, 'App Access', 'fail', 'Cannot access main app window');
+                    return;
+                }
+
+                // Test vehicle data structure
+                if (appWindow.currentVehicleData && Array.isArray(appWindow.currentVehicleData)) {
+                    logResult(category, 'Vehicle data array', 'pass', `${appWindow.currentVehicleData.length} vehicles loaded`);
+                } else {
+                    logResult(category, 'Vehicle data array', 'fail', 'Vehicle data not properly initialized');
+                }
+
+                // Test key window functions
+                const windowFunctions = [
+                    'showVehicleDetailModal',
+                    'showAddVehicleModal', 
+                    'showStatusUpdateModal',
+                    'deleteVehicle',
+                    'toggleWorkflowStep',
+                    'toggleTitleInHouse',
+                    'updateVehicleNotes',
+                    'exportToCSV'
+                ];
+
+                windowFunctions.forEach(funcName => {
+                    if (typeof appWindow[funcName] === 'function') {
+                        logResult(category, `${funcName} function`, 'pass', 'Function exists and callable');
+                    } else {
+                        logResult(category, `${funcName} function`, 'fail', 'Function missing or not callable');
+                    }
+                });
+
+                // Test vehicle detail modal
+                if (appWindow.currentVehicleData && appWindow.currentVehicleData.length > 0) {
+                    const testVehicle = appWindow.currentVehicleData[0];
+                    try {
+                        appWindow.showVehicleDetailModal(testVehicle['Stock #']);
+                        const modal = appWindow.document.getElementById('vehicle-detail-modal');
+                        if (modal && modal.style.display === 'block') {
+                            logResult(category, 'Vehicle detail modal', 'pass', 'Modal opens successfully');
+                            
+                            // Close the modal
+                            modal.style.display = 'none';
+                        } else {
+                            logResult(category, 'Vehicle detail modal', 'fail', 'Modal not displayed');
+                        }
+                    } catch (e) {
+                        logResult(category, 'Vehicle detail modal', 'fail', `Error opening modal: ${e.message}`);
+                    }
+                }
+
+                // Test workflow steps configuration
+                if (appWindow.WORKFLOW_STEPS && typeof appWindow.WORKFLOW_STEPS === 'object') {
+                    const expectedSteps = ['New Arrival', 'Mechanical', 'Detailing', 'Photos', 'Title', 'Lot Ready', 'Sold'];
+                    let allStepsPresent = true;
+                    
+                    expectedSteps.forEach(step => {
+                        if (!appWindow.WORKFLOW_STEPS[step]) {
+                            allStepsPresent = false;
+                            logResult(category, `Workflow step ${step}`, 'fail', 'Step configuration missing');
+                        }
+                    });
+                    
+                    if (allStepsPresent) {
+                        logResult(category, 'Workflow steps', 'pass', 'All workflow steps configured');
+                    }
+                } else {
+                    logResult(category, 'Workflow steps', 'fail', 'WORKFLOW_STEPS not properly configured');
+                }
+
+            } catch (error) {
+                logResult(category, 'Vehicle Test', 'fail', `Unexpected error: ${error.message}`);
+            }
+        }
+
+        async function testDataOperations() {
+            const category = 'data';
+            
+            try {
+                if (!appWindow) {
+                    logResult(category, 'App Access', 'fail', 'Cannot access main app window');
+                    return;
+                }
+
+                // Test data persistence functions
+                const dataFunctions = [
+                    'saveDataToStorage',
+                    'loadDataFromStorage', 
+                    'autoSave',
+                    'exportToCSV'
+                ];
+
+                dataFunctions.forEach(funcName => {
+                    if (typeof appWindow[funcName] === 'function') {
+                        logResult(category, `${funcName} function`, 'pass', 'Function exists');
+                    } else {
+                        logResult(category, `${funcName} function`, 'fail', 'Function missing');
+                    }
+                });
+
+                // Test localStorage functionality
+                try {
+                    if (typeof Storage !== "undefined") {
+                        logResult(category, 'localStorage support', 'pass', 'Browser supports localStorage');
+                        
+                        // Test save/load cycle
+                        if (typeof appWindow.saveDataToStorage === 'function') {
+                            appWindow.saveDataToStorage();
+                            logResult(category, 'Data save', 'pass', 'Data saved to localStorage');
+                        }
+                        
+                        if (typeof appWindow.loadDataFromStorage === 'function') {
+                            const loaded = appWindow.loadDataFromStorage();
+                            if (loaded) {
+                                logResult(category, 'Data load', 'pass', 'Data loaded from localStorage');
+                            } else {
+                                logResult(category, 'Data load', 'warn', 'No data in localStorage or load failed');
+                            }
+                        }
+                    } else {
+                        logResult(category, 'localStorage support', 'fail', 'Browser does not support localStorage');
+                    }
+                } catch (e) {
+                    logResult(category, 'localStorage test', 'fail', `Error: ${e.message}`);
+                }
+
+                // Test CSV functionality
+                if (typeof window.Papa !== 'undefined') {
+                    logResult(category, 'CSV library', 'pass', 'PapaParse library loaded');
+                } else {
+                    logResult(category, 'CSV library', 'warn', 'PapaParse library not available');
+                }
+
+            } catch (error) {
+                logResult(category, 'Data Test', 'fail', `Unexpected error: ${error.message}`);
+            }
+        }
+
+        async function testUIElements() {
+            const category = 'ui';
+            
+            try {
+                if (!appWindow) {
+                    logResult(category, 'App Access', 'fail', 'Cannot access main app window');
+                    return;
+                }
+
+                // Test render functions
+                const renderFunctions = [
+                    'renderDashboard',
+                    'renderWorkflow',
+                    'renderInventory', 
+                    'renderReports',
+                    'renderUpload',
+                    'renderDetailers'
+                ];
+
+                renderFunctions.forEach(funcName => {
+                    if (typeof appWindow[funcName] === 'function') {
+                        logResult(category, `${funcName} function`, 'pass', 'Render function exists');
+                        
+                        // Try to execute the render function
+                        try {
+                            appWindow[funcName]();
+                            logResult(category, `${funcName} execution`, 'pass', 'Render function executes without error');
+                        } catch (e) {
+                            logResult(category, `${funcName} execution`, 'fail', `Error executing: ${e.message}`);
+                        }
+                    } else {
+                        logResult(category, `${funcName} function`, 'fail', 'Render function missing');
+                    }
+                });
+
+                // Test CSS framework loading
+                const tailwindTest = appWindow.document.querySelector('.bg-white');
+                if (tailwindTest) {
+                    logResult(category, 'Tailwind CSS', 'pass', 'Tailwind CSS classes working');
+                } else {
+                    logResult(category, 'Tailwind CSS', 'warn', 'Tailwind CSS may not be loaded properly');
+                }
+
+                // Test Font Awesome icons
+                const iconTest = appWindow.document.querySelector('.fas, .fa-');
+                if (iconTest) {
+                    logResult(category, 'Font Awesome', 'pass', 'Font Awesome icons detected');
+                } else {
+                    logResult(category, 'Font Awesome', 'warn', 'Font Awesome icons not detected');
+                }
+
+                // Test responsive elements
+                const responsiveTest = appWindow.document.querySelector('.md\\:grid-cols-2, .lg\\:grid-cols-3');
+                if (responsiveTest) {
+                    logResult(category, 'Responsive design', 'pass', 'Responsive classes detected');
+                } else {
+                    logResult(category, 'Responsive design', 'warn', 'Responsive design elements not found');
+                }
+
+            } catch (error) {
+                logResult(category, 'UI Test', 'fail', `Unexpected error: ${error.message}`);
+            }
+        }
+
+        async function testModals() {
+            const category = 'modal';
+            
+            try {
+                if (!appWindow) {
+                    logResult(category, 'App Access', 'fail', 'Cannot access main app window');
+                    return;
+                }
+
+                // Test modal elements exist
+                const modals = [
+                    'vehicle-detail-modal',
+                    'message-modal'
+                ];
+
+                modals.forEach(modalId => {
+                    const modal = appWindow.document.getElementById(modalId);
+                    if (modal) {
+                        logResult(category, `${modalId} element`, 'pass', 'Modal element exists');
+                    } else {
+                        logResult(category, `${modalId} element`, 'warn', 'Modal element not found');
+                    }
+                });
+
+                // Test modal functions
+                const modalFunctions = [
+                    'showMessageModal',
+                    'closeAllModals'
+                ];
+
+                modalFunctions.forEach(funcName => {
+                    if (typeof appWindow[funcName] === 'function') {
+                        logResult(category, `${funcName} function`, 'pass', 'Modal function exists');
+                    } else {
+                        logResult(category, `${funcName} function`, 'fail', 'Modal function missing');
+                    }
+                });
+
+                // Test showMessageModal functionality
+                if (typeof appWindow.showMessageModal === 'function') {
+                    try {
+                        appWindow.showMessageModal('Test', 'This is a test message');
+                        
+                        setTimeout(() => {
+                            const messageModal = appWindow.document.getElementById('message-modal');
+                            if (messageModal && messageModal.style.display === 'block') {
+                                logResult(category, 'Message modal display', 'pass', 'Message modal shows correctly');
+                                
+                                // Close it
+                                if (typeof appWindow.closeAllModals === 'function') {
+                                    appWindow.closeAllModals();
+                                }
+                            } else {
+                                logResult(category, 'Message modal display', 'fail', 'Message modal not displayed');
+                            }
+                        }, 100);
+                        
+                    } catch (e) {
+                        logResult(category, 'Message modal test', 'fail', `Error: ${e.message}`);
+                    }
+                }
+
+            } catch (error) {
+                logResult(category, 'Modal Test', 'fail', `Unexpected error: ${error.message}`);
+            }
+        }
+
+        async function testPerformance() {
+            const category = 'perf';
+            
+            try {
+                if (!appWindow) {
+                    logResult(category, 'App Access', 'fail', 'Cannot access main app window');
+                    return;
+                }
+
+                // Test initial load time
+                const startTime = performance.now();
+                
+                // Simulate loading data
+                if (typeof appWindow.loadInitialData === 'function') {
+                    try {
+                        await appWindow.loadInitialData();
+                        const loadTime = performance.now() - startTime;
+                        
+                        if (loadTime < 1000) {
+                            logResult(category, 'Data load speed', 'pass', `Loaded in ${loadTime.toFixed(2)}ms`);
+                        } else if (loadTime < 3000) {
+                            logResult(category, 'Data load speed', 'warn', `Loaded in ${loadTime.toFixed(2)}ms (slow)`);
+                        } else {
+                            logResult(category, 'Data load speed', 'fail', `Loaded in ${loadTime.toFixed(2)}ms (too slow)`);
+                        }
+                    } catch (e) {
+                        logResult(category, 'Data load test', 'fail', `Error: ${e.message}`);
+                    }
+                }
+
+                // Test memory usage (basic check)
+                if (appWindow.currentVehicleData) {
+                    const dataSize = JSON.stringify(appWindow.currentVehicleData).length;
+                    if (dataSize < 100000) {
+                        logResult(category, 'Memory usage', 'pass', `Data size: ${dataSize} bytes`);
+                    } else {
+                        logResult(category, 'Memory usage', 'warn', `Large data size: ${dataSize} bytes`);
+                    }
+                }
+
+                // Test browser compatibility
+                const features = {
+                    'localStorage': typeof Storage !== 'undefined',
+                    'fetch': typeof fetch !== 'undefined', 
+                    'Promise': typeof Promise !== 'undefined',
+                    'JSON': typeof JSON !== 'undefined'
+                };
+
+                Object.keys(features).forEach(feature => {
+                    if (features[feature]) {
+                        logResult(category, `${feature} support`, 'pass', 'Feature supported');
+                    } else {
+                        logResult(category, `${feature} support`, 'fail', 'Feature not supported');
+                    }
+                });
+
+            } catch (error) {
+                logResult(category, 'Performance Test', 'fail', `Unexpected error: ${error.message}`);
+            }
+        }
+
+        async function runAllTests() {
+            clearResults();
+            
+            document.getElementById('test-summary').style.display = 'none';
+            
+            console.log('Running comprehensive test suite...');
+            
+            await testTabFunctionality();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testVehicleProfile();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testDataOperations();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testUIElements();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testModals();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testPerformance();
+            
+            // Show summary
+            setTimeout(showTestSummary, 1000);
+        }
+
+        function showTestSummary() {
+            const summaryDiv = document.getElementById('test-summary');
+            const contentDiv = document.getElementById('summary-content');
+            
+            const passRate = ((testResults.pass / testResults.total) * 100).toFixed(1);
+            let overallStatus = 'EXCELLENT';
+            let statusColor = 'text-green-600';
+            
+            if (passRate < 70) {
+                overallStatus = 'NEEDS WORK';
+                statusColor = 'text-red-600';
+            } else if (passRate < 90) {
+                overallStatus = 'GOOD';
+                statusColor = 'text-yellow-600';
+            }
+            
+            contentDiv.innerHTML = `
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="p-4 bg-green-50 rounded-lg">
+                        <div class="text-3xl font-bold text-green-600">${testResults.pass}</div>
+                        <div class="text-sm text-green-700">Passed</div>
+                    </div>
+                    <div class="p-4 bg-red-50 rounded-lg">
+                        <div class="text-3xl font-bold text-red-600">${testResults.fail}</div>
+                        <div class="text-sm text-red-700">Failed</div>
+                    </div>
+                    <div class="p-4 bg-yellow-50 rounded-lg">
+                        <div class="text-3xl font-bold text-yellow-600">${testResults.warn}</div>
+                        <div class="text-sm text-yellow-700">Warnings</div>
+                    </div>
+                    <div class="p-4 bg-blue-50 rounded-lg">
+                        <div class="text-3xl font-bold text-blue-600">${testResults.total}</div>
+                        <div class="text-sm text-blue-700">Total</div>
+                    </div>
+                </div>
+                
+                <div class="text-4xl font-bold ${statusColor} mb-4">${overallStatus}</div>
+                <div class="text-xl mb-4">Pass Rate: ${passRate}%</div>
+                
+                <div class="text-left max-w-2xl mx-auto">
+                    <h3 class="text-lg font-semibold mb-2">Recommendations:</h3>
+                    ${testResults.fail > 0 ? '<p class="text-red-600">• Fix failed tests before production deployment</p>' : ''}
+                    ${testResults.warn > 0 ? '<p class="text-yellow-600">• Review warnings for potential improvements</p>' : ''}
+                    ${testResults.fail === 0 && testResults.warn === 0 ? '<p class="text-green-600">• ✅ All tests passed! Application is ready for production</p>' : ''}
+                </div>
+            `;
+            
+            summaryDiv.style.display = 'block';
+        }
+
+        // Auto-load app on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (!appWindow) {
+                    document.getElementById('app-frame').src = '../public/index.html';
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
