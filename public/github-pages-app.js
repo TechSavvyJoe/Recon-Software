@@ -94,13 +94,13 @@ function loadFromStorage(key, defaultValue = []) {
 }
 
 function showMessageModal(title, message) {
-    document.getElementById('message-title').textContent = title;
-    document.getElementById('message-text').textContent = message;
-    document.getElementById('message-modal').classList.remove('hidden');
+    document.getElementById('message-modal-title').textContent = title;
+    document.getElementById('message-modal-text').textContent = message;
+    document.getElementById('message-modal').style.display = 'block';
 }
 
 function hideMessageModal() {
-    document.getElementById('message-modal').classList.add('hidden');
+    document.getElementById('message-modal').style.display = 'none';
 }
 
 function generateId() {
@@ -574,6 +574,39 @@ function deleteDetailer(id) {
     }
 }
 
+// Add GitHub Pages demo banner
+function addGitHubPagesBanner() {
+    const banner = document.createElement('div');
+    banner.className = 'fixed top-0 left-0 right-0 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-center py-2 px-4 z-50 shadow-md';
+    banner.innerHTML = `
+        <div class="flex items-center justify-center gap-2">
+            <i class="fab fa-github"></i>
+            <span class="font-medium">🚀 Live Demo - GitHub Pages</span>
+            <span class="hidden sm:inline">• All data stored locally in your browser</span>
+            <a href="https://github.com/TechSavvyJoe/Recon-Software" target="_blank" class="underline hover:text-blue-200 ml-2">
+                View Source
+            </a>
+        </div>
+    `;
+    document.body.insertBefore(banner, document.body.firstChild);
+    
+    // Add top padding to body to account for banner
+    document.body.style.paddingTop = '3rem';
+}
+
+// Export sample data functions for demo
+window.downloadSampleData = function() {
+    const sampleCSV = Papa.unparse(SAMPLE_VEHICLES);
+    const blob = new Blob([sampleCSV], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'vehicle-recon-sample-data.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+    showMessageModal('Success', 'Sample CSV data downloaded! You can modify this file and re-upload it to test the import functionality.');
+};
+
 // Event Handlers
 function setupEventListeners() {
     // Tab switching
@@ -701,8 +734,10 @@ function setupEventListeners() {
     });
     
     // Message modal
-    document.getElementById('close-message-modal').addEventListener('click', hideMessageModal);
-    document.getElementById('message-ok-button').addEventListener('click', hideMessageModal);
+    document.getElementById('message-modal-ok-button').addEventListener('click', hideMessageModal);
+    
+    // Close modal when clicking the X
+    document.querySelector('.close-modal').addEventListener('click', hideMessageModal);
     
     // Report actions
     document.getElementById('export-report-button').addEventListener('click', () => {
@@ -759,9 +794,15 @@ function initApp() {
     // Show welcome message for first-time users
     if (AppState.vehicles.length === 0 && AppState.detailers.length === SAMPLE_DETAILERS.length) {
         setTimeout(() => {
-            showMessageModal('Welcome', 'Welcome to the Vehicle Reconditioning Tracker demo! Try loading sample data or uploading your own CSV file to get started.');
-        }, 1000);
+            showMessageModal('Welcome to the Demo!', 
+                'This is a live demo of the Vehicle Reconditioning Tracker running on GitHub Pages. ' +
+                'Try loading sample data, uploading CSV files, or adding vehicles manually. ' +
+                'All data is stored locally in your browser and will persist between sessions.');
+        }, 1500);
     }
+    
+    // Add demo banner
+    addGitHubPagesBanner();
 }
 
 // Start the application when DOM is ready

@@ -2,8 +2,9 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 permissions:
   contents: read
@@ -20,98 +21,18 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-      
-    - name: Create deployment directory
-      run: |
-        mkdir -p _site
-        
-        # Copy GitHub Pages optimized files
-        cp public/github-pages.html _site/index.html
-        cp public/github-pages-app.js _site/app.js
-        
-        # Copy static assets
-        cp -r public/styles.css _site/ 2>/dev/null || echo "No styles.css found"
-        cp -r public/images _site/ 2>/dev/null || echo "No images directory found"
-        cp -r public/assets _site/ 2>/dev/null || echo "No assets directory found"
-        
-        # Create a simple admin page for GitHub Pages
-        cat > _site/admin.html << 'EOF'
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Admin - Vehicle Recon Demo</title>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body class="bg-gray-100">
-            <div class="container mx-auto p-4">
-                <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
-                    <p><strong>Demo Mode:</strong> This is a static demo version. Full admin functionality requires the backend server.</p>
-                </div>
-                <h1 class="text-2xl font-bold mb-4">Admin Panel - Demo Version</h1>
-                <p class="mb-4">This is a demo of the admin panel. In the full version, you would have:</p>
-                <ul class="list-disc pl-6 space-y-2">
-                    <li>System configuration management</li>
-                    <li>User account management</li>
-                    <li>Data backup and restore</li>
-                    <li>Server monitoring and logs</li>
-                    <li>Database management tools</li>
-                </ul>
-                <div class="mt-6">
-                    <a href="/" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                        Back to Main App
-                    </a>
-                </div>
-            </div>
-        </body>
-        </html>
-        EOF
-        
-        # Create a README for the demo
-        cat > _site/README.md << 'EOF'
-        # Vehicle Reconditioning Tracker - GitHub Pages Demo
-        
-        This is a static demo version of the Vehicle Reconditioning Tracker application.
-        
-        ## Features Available in Demo:
-        - CSV import and export
-        - Vehicle inventory management
-        - Detailer management
-        - Progress tracking
-        - Reporting dashboard
-        
-        ## Demo Limitations:
-        - Data is stored in browser localStorage only
-        - No backend server functionality
-        - No real-time collaboration
-        - No persistent data storage
-        
-        ## Full Version:
-        The complete application includes a Node.js backend with:
-        - Persistent database storage
-        - File upload handling
-        - Admin panel with system management
-        - Real-time updates
-        - Multi-user support
-        
-        Visit the [GitHub repository](https://github.com/TechSavvyJoe/Recon-Software) for the complete source code.
-        EOF
-        
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: '_site'
-        
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
-        publish_dir: ./dist
-        publish_branch: gh-pages
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './public'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
