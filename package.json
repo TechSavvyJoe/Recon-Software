@@ -1,0 +1,16 @@
+{
+  "name": "vehicle-reconditioning-tracker",
+  "version": "1.0.0",
+  "description": "A web app to track vehicle reconditioning workflow.",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "npx tailwindcss -i ./src/styles.css -o ./public/styles.css --watch",
+    "build": "npx tailwindcss -i ./src/styles.css -o ./public/styles.css --minify"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "tailwindcss": "^3.4.1",
+    "postcss": "^8.4.38",
+    "autoprefixer": "^10.4.16"
+  }
+}
