@@ -2,6 +2,17 @@
 
 A comprehensive web application for tracking vehicle reconditioning workflow with CSV-based inventory management and admin panel.
 
+## 🌐 Live Demo
+
+**Try the live demo:** [https://techsavvyjoe.github.io/Recon-Software/](https://techsavvyjoe.github.io/Recon-Software/)
+
+The GitHub Pages demo runs entirely in your browser with no backend required. Features include:
+- 📊 Full inventory management with CSV import/export
+- 🚀 Sample data to explore all functionality
+- 💾 Local storage persistence (data saved in your browser)
+- 📱 Mobile-responsive design
+- 🎯 Complete workflow tracking
+
 ## 🚀 New Features
 
 ### Backend Server & Admin Panel
