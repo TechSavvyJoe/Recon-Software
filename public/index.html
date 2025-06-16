@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Reconditioning Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .tab-content { 
+            display: none;
+        }
+        .tab-content.active { 
+            display: block; 
+        }
+        
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 100; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.7);
+        }
+        
+        .modal-content { 
+            background-color: #fefefe; 
+            margin: 3% auto; 
+            padding: 2rem; 
+            border: none; 
+            width: 90%; 
+            max-width: 900px; 
+            border-radius: 1rem; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); 
+            max-height: 85vh; 
+            overflow-y: auto;
+        }
+        
+        .dashboard-vehicle-card { 
+            cursor: pointer; 
+            padding: 1.5rem; 
+            border: 1px solid #e2e8f0;
+            background-color: white;
+            transition: all 0.3s ease;
+            border-radius: 1rem;
+        } 
+        
+        .dashboard-vehicle-card:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+            border-color: #3b82f6;
+        }
+        
+        .action-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            border: 1px solid transparent;
+        }
+        
+        .action-button-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        
+        .action-button-primary:hover {
+            background-color: #1d4ed8;
+        }
+        
+        .action-button-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            border-color: #d1d5db;
+        }
+        
+        .action-button-secondary:hover {
+            background-color: #e5e7eb;
+        }
+        
+        .chart-container { 
+            position: relative; 
+            height: 320px; 
+            width: 100%; 
+            border-radius: 1rem;
+            padding: 1rem;
+        }
+        
+        .timeline-container {
+            position: relative;
+            padding: 2rem 0;
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #e5e7eb;
+        }
+        
+        .timeline-item.completed {
+            border-left-color: #22c55e;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+        }
+        
+        .timeline-item.in-progress {
+            border-left-color: #f59e0b;
+            background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+        }
+        
+        .timeline-item.pending {
+            border-left-color: #e5e7eb;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <!-- Main Container -->
+    <div class="container mx-auto p-4">
+        <!-- Header -->
+        <header class="bg-sky-700 text-white p-6 rounded-lg shadow-md mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold">Vehicle Reconditioning Workflow Tracker</h1>
+                    <p class="text-sky-200 mt-2">Streamline your vehicle reconditioning process with real-time tracking and analytics</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="performance-metrics" class="text-white hover:text-sky-200 transition-colors p-2 rounded-full hover:bg-sky-600" title="Performance Metrics">
+                        <i class="fas fa-chart-line text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <div class="mb-6 bg-white p-3 rounded-lg shadow">
+            <nav class="flex flex-wrap space-x-2 sm:space-x-4" id="tabs">
+                <button data-tab="dashboard" class="tab-button py-2 px-4 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition">
+                    <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                </button>
+                <button data-tab="workflow" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">
+                    <i class="fas fa-tasks mr-2"></i>Workflow
+                </button>
+                <button data-tab="inventory" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">
+                    <i class="fas fa-list mr-2"></i>Inventory
+                </button>
+                <button data-tab="reports" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">
+                    <i class="fas fa-chart-bar mr-2"></i>Reports
+                </button>
+                <button data-tab="upload" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">
+                    <i class="fas fa-upload mr-2"></i>Upload Data
+                </button>
+                <button data-tab="detailers" class="tab-button py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">
+                    <i class="fas fa-users mr-2"></i>Detailers
+                </button>
+                <button id="admin-button" class="tab-button py-2 px-4 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition ml-auto">
+                    <i class="fas fa-cog mr-2"></i>Admin Panel
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab Content -->
+        <main id="tab-content-area">
+            <!-- Dashboard Tab -->
+            <div id="dashboard-content" class="tab-content active p-6 bg-white rounded-lg shadow">
+                <div class="flex flex-wrap gap-4 mb-6 items-center">
+                    <h2 class="text-2xl font-semibold">Active Reconditioning Overview</h2>
+                    <input type="text" id="dashboard-search" placeholder="Search VIN, Stock#, Make, Model..." class="p-2 border rounded-md flex-grow min-w-[200px] sm:min-w-[300px]">
+                    <div class="flex items-center space-x-2">
+                        <label for="dashboard-status-filter" class="text-sm font-medium">Filter by Status:</label>
+                        <select id="dashboard-status-filter" class="p-2 border rounded-md">
+                            <option value="">All Active</option>
+                            <option value="needs_attention">Needs Attention</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow">
+                        <div class="flex items-center">
+                            <i class="fas fa-car text-2xl mr-3"></i>
+                            <div>
+                                <p class="text-blue-100">Active Vehicles</p>
+                                <p id="total-active-count" class="text-2xl font-bold">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-4 rounded-lg shadow">
+                        <div class="flex items-center">
+                            <i class="fas fa-wrench text-2xl mr-3"></i>
+                            <div>
+                                <p class="text-yellow-100">In Mechanical</p>
+                                <p id="mechanical-count" class="text-2xl font-bold">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg shadow">
+                        <div class="flex items-center">
+                            <i class="fas fa-spray-can text-2xl mr-3"></i>
+                            <div>
+                                <p class="text-purple-100">In Detailing</p>
+                                <p id="detailing-count" class="text-2xl font-bold">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg shadow">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-2xl mr-3"></i>
+                            <div>
+                                <p class="text-green-100">Lot Ready</p>
+                                <p id="lot-ready-count" class="text-2xl font-bold">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dashboard-vehicle-list" class="space-y-4"></div>
+            </div>
+
+            <!-- Workflow Tab -->
+            <div id="workflow-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold">Workflow Board</h2>
+                    <div class="flex gap-2">
+                        <input type="text" id="workflow-search" placeholder="Search vehicles..." class="p-2 border rounded-md">
+                        <button id="add-vehicle-workflow" class="action-button action-button-primary">
+                            <i class="fas fa-plus mr-2"></i>Add Vehicle
+                        </button>
+                    </div>
+                </div>
+                <div id="workflow-board" class="workflow-board"></div>
+            </div>
+
+            <!-- Inventory Tab -->
+            <div id="inventory-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold">Inventory Management</h2>
+                    <div class="flex gap-2">
+                        <button id="add-vehicle-btn" class="action-button action-button-primary">
+                            <i class="fas fa-plus mr-2"></i>Add Vehicle
+                        </button>
+                        <button id="export-csv-button" class="action-button action-button-secondary">
+                            <i class="fas fa-download mr-2"></i>Export CSV
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-4 flex flex-wrap gap-4 items-center">
+                    <input type="text" id="inventory-search" placeholder="Search vehicles..." class="p-2 border rounded-md">
+                    <select id="inventory-view-filter" class="p-2 border rounded-md">
+                        <option value="">All Vehicles</option>
+                        <option value="active">Active Only</option>
+                        <option value="sold">Sold Only</option>
+                    </select>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border border-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="sortable px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-column="stockNumber">
+                                    Stock # <span class="sort-arrow"></span>
+                                </th>
+                                <th class="sortable px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-column="year">
+                                    Year <span class="sort-arrow"></span>
+                                </th>
+                                <th class="sortable px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-column="make">
+                                    Make <span class="sort-arrow"></span>
+                                </th>
+                                <th class="sortable px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-column="model">
+                                    Model <span class="sort-arrow"></span>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Progress
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reports-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <h2 class="text-2xl font-semibold mb-6">Recon Reports & Analytics</h2>
+                
+                <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                    <div class="p-4 bg-sky-50 rounded-lg shadow">
+                        <h4 class="text-md font-semibold text-sky-700">Avg. Total Recon Time</h4>
+                        <p id="avgTotalReconTime" class="text-2xl font-bold text-sky-600">N/A</p>
+                        <p class="text-xs text-gray-500">(New Arrival to Lot Ready)</p>
+                    </div>
+                    <div class="p-4 bg-pink-50 rounded-lg shadow">
+                        <h4 class="text-md font-semibold text-pink-700">Vehicles in Process</h4>
+                        <p id="vehiclesInProcess" class="text-2xl font-bold text-pink-600">0</p>
+                        <p class="text-xs text-gray-500">(Currently being worked on)</p>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-lg shadow">
+                        <h4 class="text-md font-semibant text-green-700">Completed This Month</h4>
+                        <p id="completedThisMonth" class="text-2xl font-bold text-green-600">0</p>
+                        <p class="text-xs text-gray-500">(Moved to Lot Ready)</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="chart-container">
+                        <h3 class="text-xl font-medium mb-2">Status Distribution</h3>
+                        <canvas id="statusChart" class="rounded-lg shadow-sm"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="text-xl font-medium mb-2">Completion Trend</h3>
+                        <canvas id="trendChart" class="rounded-lg shadow-sm"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Tab -->
+            <div id="upload-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <h2 class="text-2xl font-semibold mb-6">Data Import & Sync</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="border rounded-lg p-4">
+                        <h3 class="text-lg font-medium mb-4">CSV Upload</h3>
+                        <div class="mb-4">
+                            <input type="file" id="csv-file-input" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                        </div>
+                        <button id="upload-csv-button" class="action-button action-button-primary">
+                            <i class="fas fa-upload mr-2"></i>Import CSV
+                        </button>
+                        
+                        <div class="mt-4 p-3 bg-gray-50 rounded text-sm">
+                            <p class="font-medium mb-2">Expected CSV Format:</p>
+                            <code class="text-xs">Stock#,VIN,Year,Make,Model,Status,Progress,Notes,Date_In,Source,Color,Interior,Odometer</code>
+                        </div>
+                    </div>
+                    
+                    <div class="border rounded-lg p-4">
+                        <h3 class="text-lg font-medium mb-4">Current Inventory Info</h3>
+                        <div id="current-inventory-info" class="mb-4 p-3 bg-gray-50 rounded text-sm">
+                            <p>No inventory file loaded. Please upload a CSV file to get started.</p>
+                        </div>
+                        <div class="space-y-2">
+                            <button id="refresh-inventory-button" class="action-button action-button-secondary w-full">
+                                <i class="fas fa-sync mr-2"></i>Refresh Data
+                            </button>
+                            <button id="export-inventory-button" class="action-button action-button-secondary w-full">
+                                <i class="fas fa-download mr-2"></i>Export Current Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 border rounded-lg p-4">
+                    <h3 class="text-lg font-medium mb-4">Admin Functions</h3>
+                    <div class="flex space-x-4">
+                        <a href="/admin" target="_blank" class="action-button action-button-primary">
+                            <i class="fas fa-user-shield mr-2"></i>Open Admin Panel
+                        </a>
+                        <button id="load-sample-data-button" class="action-button action-button-secondary">
+                            <i class="fas fa-database mr-2"></i>Load Sample Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailers Tab -->
+            <div id="detailers-content" class="tab-content p-6 bg-white rounded-lg shadow">
+                <h2 class="text-2xl font-semibold mb-6">Detailer Management</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="border rounded-lg p-4">
+                        <h3 class="text-lg font-medium mb-4">Add New Detailer</h3>
+                        <form id="add-detailer-form" class="space-y-4">
+                            <div>
+                                <label for="new-detailer-name" class="block text-sm font-medium text-gray-700">Name *</label>
+                                <input type="text" id="new-detailer-name" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="new-detailer-email" class="block text-sm font-medium text-gray-700">Email</label>
+                                <input type="email" id="new-detailer-email" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="new-detailer-phone" class="block text-sm font-medium text-gray-700">Phone</label>
+                                <input type="tel" id="new-detailer-phone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <button type="submit" class="action-button action-button-primary w-full">
+                                <i class="fas fa-plus mr-2"></i>Add Detailer
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="border rounded-lg p-4">
+                        <h3 class="text-lg font-medium mb-4">Current Detailers</h3>
+                        <div id="detailer-list" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modals -->
+        <div id="vehicle-detail-modal" class="modal">
+            <div class="modal-content relative">
+                <span class="close-modal absolute top-4 right-4 text-2xl cursor-pointer text-gray-500 hover:text-gray-700">&times;</span>
+                <div id="vehicle-detail-content"></div>
+            </div>
+        </div>
+        
+        <div id="add-vehicle-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal absolute top-4 right-4 text-2xl cursor-pointer text-gray-500 hover:text-gray-700">&times;</span>
+                <h3 class="text-xl font-semibold mb-6">Add New Vehicle</h3>
+                <form id="add-vehicle-form" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Stock Number *</label>
+                            <input type="text" id="add-stock-number" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Year *</label>
+                            <input type="number" id="add-year" required min="1900" max="2030"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Make *</label>
+                            <input type="text" id="add-make" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Model *</label>
+                            <input type="text" id="add-model" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                            <input type="text" id="add-color"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Detailer</label>
+                            <select id="add-detailer" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Unassigned</option>
+                                <option value="Joe Wilson">Joe Wilson</option>
+                                <option value="Mike Davis">Mike Davis</option>
+                                <option value="Sarah Johnson">Sarah Johnson</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                        <textarea id="add-notes" rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  placeholder="Initial notes about the vehicle..."></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" onclick="closeModal('add-vehicle-modal')" 
+                                class="action-button action-button-secondary">Cancel</button>
+                        <button type="submit" class="action-button action-button-primary">Add Vehicle</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div id="message-modal" class="modal">
+            <div class="modal-content w-full max-w-md">
+                <span class="close-modal absolute top-4 right-4 text-2xl cursor-pointer text-gray-500 hover:text-gray-700">&times;</span>
+                <div class="p-4">
+                    <h3 id="message-modal-title" class="text-lg font-semibold mb-2"></h3>
+                    <div id="message-modal-text" class="mb-4"></div>
+                    <button id="message-modal-ok-button" class="action-button action-button-primary">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include the main JavaScript -->
+    <script src="./main.js"></script>
+</body>
+</html>
