@@ -693,239 +693,6 @@ class Analytics {
   }
 }
 
-// --- Real-time Notification System ---
-class NotificationManager {
-  constructor() {
-    this.notifications = [];
-    this.unreadCount = 0;
-    this.maxNotifications = 50;
-  }
-
-  // Add a new notification
-  addNotification(title, message, type = 'info', priority = 'normal') {
-    const notification = {
-      id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-      title,
-      message,
-      type,
-      priority,
-      timestamp: new Date(),
-      read: false
-    };
-
-    this.notifications.unshift(notification);
-    this.unreadCount++;
-
-    // Keep only the most recent notifications
-    if (this.notifications.length > this.maxNotifications) {
-      this.notifications = this.notifications.slice(0, this.maxNotifications);
-    }
-
-    this.updateNotificationBadge();
-    this.showToastNotification(notification);
-    
-    return notification.id;
-  }
-
-  // Mark notification as read
-  markAsRead(notificationId) {
-    const notification = this.notifications.find(n => n.id === notificationId);
-    if (notification && !notification.read) {
-      notification.read = true;
-      this.unreadCount = Math.max(0, this.unreadCount - 1);
-      this.updateNotificationBadge();
-    }
-  }
-
-  // Mark all notifications as read
-  markAllAsRead() {
-    this.notifications.forEach(n => n.read = true);
-    this.unreadCount = 0;
-    this.updateNotificationBadge();
-    UIUtils.showToast('All notifications marked as read', 'success');
-  }
-
-  // Update notification badge
-  updateNotificationBadge() {
-    const badge = document.getElementById('notification-badge');
-    if (badge) {
-      if (this.unreadCount > 0) {
-        badge.textContent = this.unreadCount;
-        badge.classList.remove('hidden');
-      } else {
-        badge.classList.add('hidden');
-      }
-    }
-  }
-
-  // Show toast notification
-  showToastNotification(notification) {
-    if (notification.priority === 'high') {
-      UIUtils.showToast(`${notification.title}: ${notification.message}`, notification.type, 8000);
-    }
-  }
-
-  // Get all notifications
-  getNotifications() {
-    return this.notifications;
-  }
-
-  // Get unread notifications
-  getUnreadNotifications() {
-    return this.notifications.filter(n => !n.read);
-  }
-
-  // Clear old notifications
-  clearOldNotifications(daysOld = 7) {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
-    
-    const originalLength = this.notifications.length;
-    this.notifications = this.notifications.filter(n => n.timestamp > cutoffDate);
-    
-    const removedCount = originalLength - this.notifications.length;
-    if (removedCount > 0) {
-      UIUtils.showToast(`Cleared ${removedCount} old notifications`, 'info');
-    }
-  }
-}
-
-// --- Enhanced Performance Monitor ---
-class PerformanceMonitor {
-  constructor() {
-    this.metrics = {
-      loadTimes: [],
-      renderTimes: [],
-      errors: [],
-      slowOperations: []
-    };
-    this.startTime = performance.now();
-    this.isMonitoring = true;
-  }
-
-  // Record page load time
-  recordLoadTime(time) {
-    this.metrics.loadTimes.push({
-      time: time,
-      timestamp: new Date()
-    });
-    
-    // Keep only recent measurements
-    if (this.metrics.loadTimes.length > 100) {
-      this.metrics.loadTimes = this.metrics.loadTimes.slice(-50);
-    }
-  }
-
-  // Record render time
-  recordRenderTime(operation, time) {
-    this.metrics.renderTimes.push({
-      operation: operation,
-      time: time,
-      timestamp: new Date()
-    });
-    
-    if (this.metrics.renderTimes.length > 100) {
-      this.metrics.renderTimes = this.metrics.renderTimes.slice(-50);
-    }
-  }
-
-  // Record error
-  recordError(error, context) {
-    this.metrics.errors.push({
-      error: error.toString(),
-      context: context,
-      timestamp: new Date(),
-      stack: error.stack
-    });
-    
-    if (this.metrics.errors.length > 50) {
-      this.metrics.errors = this.metrics.errors.slice(-25);
-    }
-  }
-
-  // Record slow operation
-  recordSlowOperation(operation, time) {
-    if (time > 1000) { // Only record operations slower than 1 second
-      this.metrics.slowOperations.push({
-        operation: operation,
-        time: time,
-        timestamp: new Date()
-      });
-      
-      if (this.metrics.slowOperations.length > 50) {
-        this.metrics.slowOperations = this.metrics.slowOperations.slice(-25);
-      }
-    }
-  }
-
-  // Get average load time
-  getAverageLoadTime() {
-    if (this.metrics.loadTimes.length === 0) return 0;
-    const total = this.metrics.loadTimes.reduce((sum, item) => sum + item.time, 0);
-    return Math.round(total / this.metrics.loadTimes.length);
-  }
-
-  // Get average render time
-  getAverageRenderTime() {
-    if (this.metrics.renderTimes.length === 0) return 0;
-    const total = this.metrics.renderTimes.reduce((sum, item) => sum + item.time, 0);
-    return Math.round(total / this.metrics.renderTimes.length);
-  }
-
-  // Get recent errors
-  getRecentErrors(hours = 1) {
-    const cutoffTime = new Date();
-    cutoffTime.setHours(cutoffTime.getHours() - hours);
-    
-    return this.metrics.errors.filter(error => error.timestamp > cutoffTime);
-  }
-
-  // Get recent slow operations
-  getRecentSlowOperations(hours = 1) {
-    const cutoffTime = new Date();
-    cutoffTime.setHours(cutoffTime.getHours() - hours);
-    
-    return this.metrics.slowOperations.filter(op => op.timestamp > cutoffTime);
-  }
-
-  // Export metrics
-  exportMetrics() {
-    const data = {
-      summary: {
-        averageLoadTime: this.getAverageLoadTime(),
-        averageRenderTime: this.getAverageRenderTime(),
-        recentErrors: this.getRecentErrors().length,
-        recentSlowOps: this.getRecentSlowOperations().length
-      },
-      detailed: this.metrics,
-      exportDate: new Date().toISOString()
-    };
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `performance-metrics-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    UIUtils.showToast('Performance metrics exported', 'success');
-  }
-
-  // Start monitoring
-  startMonitoring() {
-    this.isMonitoring = true;
-    this.startTime = performance.now();
-  }
-
-  // Stop monitoring
-  stopMonitoring() {
-    this.isMonitoring = false;
-  }
-}
-
 // --- Missing Utility Functions ---
 
 // Calculate days in process for a vehicle
@@ -1090,6 +857,17 @@ function filterInventory(searchTerm) {
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('App initializing...');
   
+  // Initialize manager classes
+  try {
+    console.log('Initializing manager classes...');
+    window.photoManager = new PhotoManager();
+    window.notificationManager = new NotificationManager();
+    window.performanceMonitor = new PerformanceMonitor();
+    console.log('Manager classes initialized successfully');
+  } catch (error) {
+    console.error('Error initializing manager classes:', error);
+  }
+  
   // Initialize enhanced features
   UIUtils.initDarkMode();
   UIUtils.showToast('Welcome to Vehicle Reconditioning Tracker!', 'info');
@@ -1230,7 +1008,7 @@ function switchTab(tabId) {
   
   // Activate selected tab and content
   const activeTab = document.querySelector(`[data-tab="${tabId}"]`);
-  const activeContent = $(tabId + '-content');
+  const activeContent = document.getElementById(tabId + '-content');
   
   if (activeTab) {
     activeTab.classList.add('bg-sky-500', 'text-white');
@@ -1548,15 +1326,6 @@ function updateDashboardCounts() {
   if (lotReadyEl) lotReadyEl.textContent = lotReadyCount;
 }
   
-function renderDashboard() {
-  console.log('Rendering dashboard with', currentVehicleData.length, 'vehicles');
-  
-  // Update the existing HTML elements instead of replacing everything
-  updateDashboardCounts();
-  
-  console.log('Dashboard rendered successfully');
-}
-
 function updateDashboardCounts() {
   // Calculate counts for the existing KPI cards
   const activeVehicles = currentVehicleData.filter(v => v['Status'] !== 'Lot Ready' && v['Status'] !== 'Sold').length;
@@ -2598,83 +2367,172 @@ function downloadAllPhotos() {
   }
 }
 
-console.log('VIN scanner functions initialized successfully');
+// --- Global Window Functions ---
+// These functions are attached to the window object for HTML onclick handlers
 
-// --- Form Handlers Initialization ---
-function initializeFormHandlers() {
-  console.log('Initializing form handlers...');
+window.showMessageModal = function(title, message) {
+  const modal = document.getElementById('message-modal');
+  const titleElement = document.getElementById('message-modal-title');
+  const textElement = document.getElementById('message-modal-text');
   
-  // Initialize add vehicle form
-  const addVehicleForm = document.getElementById('add-vehicle-form');
-  if (addVehicleForm) {
-    addVehicleForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const formData = new FormData(e.target);
-      const vehicleData = {
-        'Stock #': document.getElementById('add-stock-number')?.value || '',
-        'Year': parseInt(document.getElementById('add-year')?.value) || new Date().getFullYear(),
-        'Make': document.getElementById('add-make')?.value || '',
-        'Model': document.getElementById('add-model')?.value || '',
-        'Color': document.getElementById('add-color')?.value || '',
-        'Detailer': document.getElementById('add-detailer')?.value || '',
-        'Notes': document.getElementById('add-notes')?.value || '',
-        'VIN': document.getElementById('add-vin')?.value || '',
-        'Status': 'New Arrival',
-        'Date In': new Date().toISOString().split('T')[0],
-        'Last Updated': new Date().toISOString()
-      };
-      
-      // Validate required fields
-      if (!vehicleData['Stock #'] || !vehicleData['Year'] || !vehicleData['Make'] || !vehicleData['Model']) {
-        UIUtils.showToast('Please fill in all required fields', 'error');
-        return;
-      }
-      
-      // Check for duplicate stock number
-      if (currentVehicleData.find(v => v['Stock #'] === vehicleData['Stock #'])) {
-        UIUtils.showToast('Stock number already exists', 'error');
-        return;
-      }
-      
-      // Initialize workflow
-      vehicleData.workflow = getWorkflowStatus(vehicleData);
-      
-      // Handle photo uploads if any
-      const photoInput = document.getElementById('add-photos');
-      if (photoInput && photoInput.files && photoInput.files.length > 0) {
-        if (window.photoManager) {
-          window.photoManager.addPhotosToVehicle(vehicleData['Stock #'], photoInput.files);
-        }
-      }
-      
-      // Add to data
-      currentVehicleData.push(vehicleData);
-      
-      // Save and refresh
-      autoSave();
-      renderAllTabs();
-      
-      // Reset form and close modal
-      e.target.reset();
-      const previewContainer = document.getElementById('photo-preview');
-      if (previewContainer) {
-        previewContainer.innerHTML = '';
-        previewContainer.classList.add('hidden');
-      }
-      closeModal('add-vehicle-modal');
-      
-      UIUtils.showToast(`Added ${vehicleData['Year']} ${vehicleData['Make']} ${vehicleData['Model']}`, 'success');
-    });
+  if (modal && titleElement && textElement) {
+    titleElement.textContent = title;
+    textElement.textContent = message;
+    modal.style.display = 'block';
+  } else {
+    // Fallback to alert if modal elements aren't found
+    alert(`${title}: ${message}`);
+  }
+};
+
+window.hideMessageModal = function() {
+  const modal = document.getElementById('message-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+};
+
+window.closeModal = function(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.style.display = 'none';
+  }
+};
+
+window.closeAllModals = function() {
+  const modals = document.querySelectorAll('.modal');
+  modals.forEach(modal => {
+    modal.style.display = 'none';
+  });
+};
+
+window.showVehicleDetailModal = function(stockNum) {
+  const vehicle = currentVehicleData.find(v => v['Stock #'] === stockNum);
+  if (!vehicle) {
+    showMessageModal('Error', 'Vehicle not found');
+    return;
   }
   
-  // Set up drag and drop for photo upload areas
-  const photoUploadAreas = document.querySelectorAll('[id*="photo"], .photo-upload');
-  photoUploadAreas.forEach(area => {
-    if (window.photoManager && typeof window.photoManager.setupDragAndDrop === 'function') {
-      window.photoManager.setupDragAndDrop(area);
-    }
-  });
+  const modal = document.getElementById('vehicle-detail-modal');
+  const content = document.getElementById('vehicle-detail-content');
   
-  console.log('Form handlers initialized successfully');
-}
+  if (modal && content) {
+    content.innerHTML = `
+      <h3 class="text-xl font-semibold mb-4">${vehicle.Year} ${vehicle.Make} ${vehicle.Model}</h3>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><strong>Stock #:</strong> ${vehicle['Stock #']}</div>
+        <div><strong>VIN:</strong> ${vehicle.VIN || 'N/A'}</div>
+        <div><strong>Color:</strong> ${vehicle.Color || 'N/A'}</div>
+        <div><strong>Status:</strong> ${vehicle.Status || 'N/A'}</div>
+      </div>
+      <div class="mb-4">
+        <strong>Notes:</strong> ${vehicle.Notes || 'No notes available'}
+      </div>
+    `;
+    modal.style.display = 'block';
+  }
+};
+
+window.showAddVehicleModal = function() {
+  const modal = document.getElementById('add-vehicle-modal');
+  if (modal) {
+    modal.style.display = 'block';
+  }
+};
+
+window.deleteVehicle = function(stockNum) {
+  if (confirm('Are you sure you want to delete this vehicle?')) {
+    const index = currentVehicleData.findIndex(v => v['Stock #'] === stockNum);
+    if (index !== -1) {
+      currentVehicleData.splice(index, 1);
+      autoSave();
+      renderAllTabs();
+      showMessageModal('Success', 'Vehicle deleted successfully');
+    }
+  }
+};
+
+window.exportToCSV = function() {
+  if (typeof Papa !== 'undefined' && currentVehicleData.length > 0) {
+    const csv = Papa.unparse(currentVehicleData);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vehicle-inventory-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showMessageModal('Success', 'Inventory exported successfully!');
+  } else {
+    showMessageModal('Error', 'No data to export or CSV library not loaded');
+  }
+};
+
+window.downloadAllPhotos = function(vehicleId) {
+  if (window.photoManager) {
+    window.photoManager.downloadAllPhotos(vehicleId);
+  } else {
+    showMessageModal('Error', 'Photo manager not available');
+  }
+};
+
+window.navigatePhoto = function(direction) {
+  // Photo navigation functionality - placeholder
+  console.log('Navigate photo:', direction);
+};
+
+// VIN Scanner functions
+window.startVinScanner = function() {
+  const modal = document.getElementById('vinScannerModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.style.display = 'block';
+  }
+};
+
+window.closeVinScanner = function() {
+  const modal = document.getElementById('vinScannerModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
+};
+
+window.captureVin = function() {
+  // Simulate VIN detection for demo
+  const detectedVin = '1FMCU9G67LUC03251'; // Sample VIN
+  document.getElementById('detectedVin').textContent = detectedVin;
+  document.getElementById('detectedVinSection').classList.remove('hidden');
+};
+
+window.useDetectedVin = function() {
+  const vin = document.getElementById('detectedVin').textContent;
+  const vinInput = document.getElementById('add-vin');
+  if (vinInput) {
+    vinInput.value = vin;
+  }
+  closeVinScanner();
+  showMessageModal('Success', 'VIN added to form');
+};
+
+window.retryVinScan = function() {
+  document.getElementById('detectedVinSection').classList.add('hidden');
+};
+
+window.useManualVin = function() {
+  const manualVin = document.getElementById('manualVinInput').value.trim();
+  if (manualVin.length === 17) {
+    const vinInput = document.getElementById('add-vin');
+    if (vinInput) {
+      vinInput.value = manualVin;
+    }
+    closeVinScanner();
+    showMessageModal('Success', 'VIN added to form');
+  } else {
+    showMessageModal('Error', 'Please enter a valid 17-character VIN');
+  }
+};
+
+console.log('Window functions initialized successfully');
