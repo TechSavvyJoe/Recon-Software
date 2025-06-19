@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Reconditioning Tracker - FIXED VERSION</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-button.active { background-color: #3b82f6; color: white; }
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 100; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0,0,0,0.7);
+        }
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        .workflow-column {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            min-height: 400px;
+            transition: all 0.3s ease;
+        }
+        .workflow-column:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .workflow-vehicle-card {
+            cursor: move;
+            transition: all 0.2s ease;
+        }
+        .workflow-vehicle-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .drag-over {
+            border-color: #10b981 !important;
+            background-color: rgba(16, 185, 129, 0.05);
+        }
+        .star-rating {
+            color: #fbbf24;
+            font-size: 1.1rem;
+        }
+        .star-rating .empty {
+            color: #d1d5db;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white p-6 rounded-lg shadow mb-6">
+            <h1 class="text-3xl font-bold">🚗 Vehicle Reconditioning Tracker</h1>
+            <p class="text-blue-200 mt-2">Enhanced with Drag & Drop and Star Ratings</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="mb-6 bg-white p-3 rounded-lg shadow">
+            <div class="flex flex-wrap gap-2">
+                <button data-tab="dashboard" class="tab-button active px-4 py-2 rounded-lg transition-colors bg-blue-500 text-white">
+                    <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                </button>
+                <button data-tab="workflow" class="tab-button px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300">
+                    <i class="fas fa-tasks mr-2"></i>Workflow
+                </button>
+                <button data-tab="inventory" class="tab-button px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300">
+                    <i class="fas fa-list mr-2"></i>Inventory
+                </button>
+                <button data-tab="reports" class="tab-button px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300">
+                    <i class="fas fa-chart-bar mr-2"></i>Reports
+                </button>
+            </div>
+        </nav>
+
+        <!-- Tab Content -->
+        <main>
+            <!-- Dashboard Tab -->
+            <div id="dashboard-content" class="tab-content active">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-2xl font-bold mb-6">Dashboard Overview</h2>
+                    
+                    <!-- Key Metrics -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                        <div class="p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg">
+                            <div class="text-2xl font-bold" id="total-vehicles">0</div>
+                            <div class="text-sm opacity-90">Total Vehicles</div>
+                        </div>
+                        <div class="p-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg">
+                            <div class="text-2xl font-bold" id="lot-ready">0</div>
+                            <div class="text-sm opacity-90">Lot Ready</div>
+                        </div>
+                        <div class="p-4 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-lg">
+                            <div class="text-2xl font-bold" id="avg-condition">0</div>
+                            <div class="text-sm opacity-90">Avg Condition</div>
+                        </div>
+                        <div class="p-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg">
+                            <div class="text-2xl font-bold" id="completion-rate">0%</div>
+                            <div class="text-sm opacity-90">Completion Rate</div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Vehicles -->
+                    <h3 class="text-xl font-bold mb-4">Recent Vehicles</h3>
+                    <div id="dashboard-vehicles" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+            </div>
+
+            <!-- Workflow Tab -->
+            <div id="workflow-content" class="tab-content">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-2xl font-bold mb-6">Workflow Board - Drag & Drop Enabled</h2>
+                    <p class="text-gray-600 mb-6">💡 Drag vehicles between columns to update their status</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4" id="workflow-board"></div>
+                </div>
+            </div>
+
+            <!-- Inventory Tab -->
+            <div id="inventory-content" class="tab-content">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold">Inventory Management</h2>
+                        <button onclick="showAddVehicleModal()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                            <i class="fas fa-plus mr-2"></i>Add Vehicle
+                        </button>
+                    </div>
+                    
+                    <!-- Sorting Controls -->
+                    <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                        <div class="text-sm font-medium text-gray-700 mb-2">Sort by:</div>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="sortInventory('Stock #')" class="sort-btn px-3 py-1 text-xs rounded border">Stock #</button>
+                            <button onclick="sortInventory('Make')" class="sort-btn px-3 py-1 text-xs rounded border">Make</button>
+                            <button onclick="sortInventory('Model')" class="sort-btn px-3 py-1 text-xs rounded border">Model</button>
+                            <button onclick="sortInventory('Year')" class="sort-btn px-3 py-1 text-xs rounded border">Year</button>
+                            <button onclick="sortInventory('Status')" class="sort-btn px-3 py-1 text-xs rounded border">Status</button>
+                        </div>
+                    </div>
+                    
+                    <div id="inventory-table" class="overflow-x-auto"></div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reports-content" class="tab-content">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-2xl font-bold mb-6">Reports & Analytics</h2>
+                    
+                    <!-- Status Breakdown -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-bold mb-4">Status Breakdown</h3>
+                        <div id="status-breakdown" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+                    </div>
+                    
+                    <!-- Condition Analysis -->
+                    <div>
+                        <h3 class="text-xl font-bold mb-4">Condition Analysis</h3>
+                        <div id="condition-analysis" class="space-y-4"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modals -->
+        <div id="vehicle-detail-modal" class="modal">
+            <div class="bg-white m-auto mt-20 p-6 rounded-lg shadow-lg max-w-2xl mx-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">Vehicle Details</h3>
+                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                </div>
+                <div id="vehicle-detail-content"></div>
+            </div>
+        </div>
+
+        <div id="add-vehicle-modal" class="modal">
+            <div class="bg-white m-auto mt-20 p-6 rounded-lg shadow-lg max-w-md mx-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">Add New Vehicle</h3>
+                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                </div>
+                <form onsubmit="addNewVehicle(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Stock Number *</label>
+                        <input type="text" id="new-stock" required class="w-full p-2 border rounded-lg">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Year *</label>
+                            <input type="number" id="new-year" required class="w-full p-2 border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Make *</label>
+                            <input type="text" id="new-make" required class="w-full p-2 border rounded-lg">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Model *</label>
+                            <input type="text" id="new-model" required class="w-full p-2 border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Color</label>
+                            <input type="text" id="new-color" class="w-full p-2 border rounded-lg">
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                            Add Vehicle
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="condition-modal" class="modal">
+            <div class="bg-white m-auto mt-20 p-6 rounded-lg shadow-lg max-w-md mx-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">Update Condition</h3>
+                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                </div>
+                <div id="condition-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notifications" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <script>
+        // Global State
+        let vehicleData = [];
+        let currentSortField = 'Stock #';
+        let currentSortDirection = 'asc';
+        let draggedVehicle = null;
+
+        const STATUSES = ['New Arrival', 'Mechanical', 'Detailing', 'Photos', 'Title', 'Lot Ready'];
+
+        // Utility Functions
+        function $(id) { return document.getElementById(id); }
+
+        function getStatusColor(status) {
+            const colors = {
+                'New Arrival': 'bg-blue-100 text-blue-800 border-blue-200',
+                'Mechanical': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                'Detailing': 'bg-purple-100 text-purple-800 border-purple-200',
+                'Photos': 'bg-pink-100 text-pink-800 border-pink-200',
+                'Title': 'bg-orange-100 text-orange-800 border-orange-200',
+                'Lot Ready': 'bg-green-100 text-green-800 border-green-200'
+            };
+            return colors[status] || 'bg-gray-100 text-gray-800';
+        }
+
+        function getStarRating(rating) {
+            const stars = '★'.repeat(rating || 3) + '☆'.repeat(5 - (rating || 3));
+            return `<span class="text-yellow-500">${stars}</span>`;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            return new Date(dateStr).toLocaleDateString();
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+            notification.className = `${bgColor} text-white px-4 py-2 rounded-lg shadow-lg transform transition-all duration-300`;
+            notification.textContent = message;
+            
+            $('notifications').appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Data Management
+        function saveData() {
+            localStorage.setItem('vehicleReconData', JSON.stringify(vehicleData));
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('vehicleReconData');
+            if (saved) {
+                vehicleData = JSON.parse(saved);
+            } else {
+                // Sample data
+                vehicleData = [
+                    {
+                        'Stock #': 'T250518A',
+                        'VIN': '1FMCU9G67LUC03251',
+                        'Year': 2020,
+                        'Make': 'Ford',
+                        'Model': 'Escape',
+                        'Color': 'White',
+                        'Status': 'Mechanical',
+                        'Date In': '2024-12-15',
+                        'ExteriorCondition': 4,
+                        'InteriorCondition': 3,
+                        'Notes': 'Needs brake work'
+                    },
+                    {
+                        'Stock #': 'T250519B',
+                        'VIN': '1HGBH41JXMN109186',
+                        'Year': 2021,
+                        'Make': 'Honda',
+                        'Model': 'Civic',
+                        'Color': 'Blue',
+                        'Status': 'Detailing',
+                        'Date In': '2024-12-16',
+                        'ExteriorCondition': 5,
+                        'InteriorCondition': 4,
+                        'Notes': 'Ready for detail'
+                    },
+                    {
+                        'Stock #': 'T250520C',
+                        'VIN': '3GNAXUEV5LL123456',
+                        'Year': 2020,
+                        'Make': 'Chevrolet',
+                        'Model': 'Equinox',
+                        'Color': 'Black',
+                        'Status': 'Lot Ready',
+                        'Date In': '2024-12-10',
+                        'ExteriorCondition': 3,
+                        'InteriorCondition': 3,
+                        'Notes': 'Complete'
+                    }
+                ];
+                saveData();
+            }
+        }
+
+        // Rendering Functions
+        function renderDashboard() {
+            const total = vehicleData.length;
+            const lotReady = vehicleData.filter(v => v.Status === 'Lot Ready').length;
+            const avgCondition = total > 0 ? 
+                (vehicleData.reduce((sum, v) => sum + ((v.ExteriorCondition + v.InteriorCondition) / 2), 0) / total).toFixed(1) : 0;
+            const completionRate = total > 0 ? Math.round((lotReady / total) * 100) : 0;
+
+            $('total-vehicles').textContent = total;
+            $('lot-ready').textContent = lotReady;
+            $('avg-condition').textContent = avgCondition;
+            $('completion-rate').textContent = completionRate + '%';
+
+            const dashboardVehicles = $('dashboard-vehicles');
+            dashboardVehicles.innerHTML = vehicleData.slice(0, 6).map(v => `
+                <div class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-lg transition-all cursor-pointer" 
+                     onclick="showVehicleDetail('${v['Stock #']}')">
+                    <div class="font-bold text-lg">${v.Year} ${v.Make} ${v.Model}</div>
+                    <div class="text-sm text-gray-600 mb-2">Stock: ${v['Stock #']}</div>
+                    <div class="text-sm mb-2">
+                        <div>Exterior: ${getStarRating(v.ExteriorCondition)}</div>
+                        <div>Interior: ${getStarRating(v.InteriorCondition)}</div>
+                    </div>
+                    <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(v.Status)}">${v.Status}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderWorkflow() {
+            const workflowBoard = $('workflow-board');
+            workflowBoard.innerHTML = STATUSES.map(status => {
+                const vehicles = vehicleData.filter(v => v.Status === status);
+                return `
+                    <div class="workflow-column" data-status="${status}">
+                        <div class="p-3 text-center bg-gray-50 rounded-t-lg border-b">
+                            <h3 class="font-bold">${status}</h3>
+                            <div class="text-sm">(${vehicles.length})</div>
+                        </div>
+                        <div class="p-3 space-y-2 min-h-[300px]">
+                            ${vehicles.length === 0 ? 
+                                '<div class="text-center text-gray-500 p-4 border-2 border-dashed border-gray-300 rounded">Drop vehicles here</div>' :
+                                vehicles.map(v => `
+                                    <div class="workflow-vehicle-card p-3 border rounded-lg bg-white shadow-sm hover:shadow-md" 
+                                         draggable="true" 
+                                         data-stock="${v['Stock #']}"
+                                         onclick="showVehicleDetail('${v['Stock #']}')">
+                                        <div class="font-bold text-sm">${v.Year} ${v.Make}</div>
+                                        <div class="text-xs text-gray-600">${v.Model}</div>
+                                        <div class="text-xs">Stock: ${v['Stock #']}</div>
+                                        <div class="text-xs mt-1">
+                                            Ext: ${getStarRating(v.ExteriorCondition)} Int: ${getStarRating(v.InteriorCondition)}
+                                        </div>
+                                    </div>
+                                `).join('')
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Enable drag and drop
+            enableDragAndDrop();
+        }
+
+        function renderInventory() {
+            const table = $('inventory-table');
+            table.innerHTML = `
+                <table class="min-w-full bg-white border-2 border-gray-200 rounded-lg">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-bold border-b">Stock #</th>
+                            <th class="px-4 py-3 text-left font-bold border-b">Vehicle</th>
+                            <th class="px-4 py-3 text-left font-bold border-b">Status</th>
+                            <th class="px-4 py-3 text-left font-bold border-b">Condition</th>
+                            <th class="px-4 py-3 text-left font-bold border-b">Date In</th>
+                            <th class="px-4 py-3 text-center font-bold border-b">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${vehicleData.map(v => `
+                            <tr class="hover:bg-gray-50 cursor-pointer" onclick="showVehicleDetail('${v['Stock #']}')">
+                                <td class="px-4 py-3 border-b font-bold">${v['Stock #']}</td>
+                                <td class="px-4 py-3 border-b">
+                                    <div class="font-bold">${v.Year} ${v.Make} ${v.Model}</div>
+                                    <div class="text-sm text-gray-600">${v.Color || 'N/A'}</div>
+                                </td>
+                                <td class="px-4 py-3 border-b">
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(v.Status)}">${v.Status}</span>
+                                </td>
+                                <td class="px-4 py-3 border-b text-sm">
+                                    <div>Ext: ${getStarRating(v.ExteriorCondition)}</div>
+                                    <div>Int: ${getStarRating(v.InteriorCondition)}</div>
+                                </td>
+                                <td class="px-4 py-3 border-b text-sm">${formatDate(v['Date In'])}</td>
+                                <td class="px-4 py-3 border-b text-center" onclick="event.stopPropagation()">
+                                    <button onclick="showConditionModal('${v['Stock #']}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 mr-1">
+                                        Edit
+                                    </button>
+                                    <button onclick="deleteVehicle('${v['Stock #']}')" class="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderReports() {
+            // Status breakdown
+            const statusBreakdown = $('status-breakdown');
+            const statusCounts = {};
+            STATUSES.forEach(status => {
+                statusCounts[status] = vehicleData.filter(v => v.Status === status).length;
+            });
+
+            statusBreakdown.innerHTML = Object.entries(statusCounts).map(([status, count]) => `
+                <div class="p-4 border rounded-lg">
+                    <div class="text-lg font-bold">${count}</div>
+                    <div class="text-sm">${status}</div>
+                    <div class="text-xs text-gray-500">${vehicleData.length > 0 ? Math.round((count / vehicleData.length) * 100) : 0}%</div>
+                </div>
+            `).join('');
+
+            // Condition analysis
+            const conditionAnalysis = $('condition-analysis');
+            const conditionCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+            vehicleData.forEach(v => {
+                const avgCondition = Math.round((v.ExteriorCondition + v.InteriorCondition) / 2);
+                conditionCounts[avgCondition]++;
+            });
+
+            conditionAnalysis.innerHTML = Object.entries(conditionCounts).map(([rating, count]) => `
+                <div class="flex justify-between items-center p-3 border rounded-lg">
+                    <span>${getStarRating(parseInt(rating))} (${rating} stars)</span>
+                    <span class="font-bold">${count} vehicles</span>
+                </div>
+            `).join('');
+        }
+
+        // Drag and Drop
+        function enableDragAndDrop() {
+            document.querySelectorAll('.workflow-vehicle-card').forEach(card => {
+                card.addEventListener('dragstart', (e) => {
+                    draggedVehicle = e.target.dataset.stock;
+                    e.target.style.opacity = '0.5';
+                });
+
+                card.addEventListener('dragend', (e) => {
+                    e.target.style.opacity = '1';
+                    draggedVehicle = null;
+                });
+            });
+
+            document.querySelectorAll('.workflow-column').forEach(column => {
+                column.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+
+                column.addEventListener('dragenter', (e) => {
+                    e.preventDefault();
+                    column.classList.add('drag-over');
+                });
+
+                column.addEventListener('dragleave', (e) => {
+                    column.classList.remove('drag-over');
+                });
+
+                column.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    column.classList.remove('drag-over');
+                    
+                    if (draggedVehicle) {
+                        const newStatus = column.dataset.status;
+                        updateVehicleStatus(draggedVehicle, newStatus);
+                    }
+                });
+            });
+        }
+
+        function updateVehicleStatus(stockNumber, newStatus) {
+            const vehicle = vehicleData.find(v => v['Stock #'] === stockNumber);
+            if (vehicle && vehicle.Status !== newStatus) {
+                vehicle.Status = newStatus;
+                saveData();
+                renderAll();
+                showNotification(`${stockNumber} moved to ${newStatus}`);
+            }
+        }
+
+        // Modal Functions
+        function showVehicleDetail(stockNumber) {
+            const vehicle = vehicleData.find(v => v['Stock #'] === stockNumber);
+            if (!vehicle) return;
+
+            const content = $('vehicle-detail-content');
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><strong>Stock #:</strong> ${vehicle['Stock #']}</div>
+                        <div><strong>VIN:</strong> ${vehicle.VIN || 'N/A'}</div>
+                        <div><strong>Year:</strong> ${vehicle.Year}</div>
+                        <div><strong>Make:</strong> ${vehicle.Make}</div>
+                        <div><strong>Model:</strong> ${vehicle.Model}</div>
+                        <div><strong>Color:</strong> ${vehicle.Color || 'N/A'}</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <strong>Exterior Condition:</strong><br>
+                            ${getStarRating(vehicle.ExteriorCondition)} (${vehicle.ExteriorCondition}/5)
+                        </div>
+                        <div>
+                            <strong>Interior Condition:</strong><br>
+                            ${getStarRating(vehicle.InteriorCondition)} (${vehicle.InteriorCondition}/5)
+                        </div>
+                    </div>
+                    <div>
+                        <strong>Status:</strong> 
+                        <span class="px-2 py-1 rounded-full text-xs ${getStatusColor(vehicle.Status)}">${vehicle.Status}</span>
+                    </div>
+                    <div>
+                        <strong>Notes:</strong><br>
+                        <textarea id="vehicle-notes" class="w-full p-2 border rounded-lg mt-1" rows="3">${vehicle.Notes || ''}</textarea>
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button onclick="showConditionModal('${vehicle['Stock #']}')" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">
+                            Update Condition
+                        </button>
+                        <button onclick="updateNotes('${vehicle['Stock #']}')" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                            Save Notes
+                        </button>
+                    </div>
+                </div>
+            `;
+            $('vehicle-detail-modal').style.display = 'block';
+        }
+
+        function showConditionModal(stockNumber) {
+            const vehicle = vehicleData.find(v => v['Stock #'] === stockNumber);
+            if (!vehicle) return;
+
+            const content = $('condition-content');
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block font-medium mb-2">Exterior Condition:</label>
+                        <div class="flex space-x-2">
+                            ${[1,2,3,4,5].map(i => `
+                                <button onclick="setCondition('${stockNumber}', 'exterior', ${i})" 
+                                        class="condition-btn w-8 h-8 border rounded ${i <= vehicle.ExteriorCondition ? 'bg-yellow-500 text-white' : 'bg-gray-200'}">${i}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-medium mb-2">Interior Condition:</label>
+                        <div class="flex space-x-2">
+                            ${[1,2,3,4,5].map(i => `
+                                <button onclick="setCondition('${stockNumber}', 'interior', ${i})" 
+                                        class="condition-btn w-8 h-8 border rounded ${i <= vehicle.InteriorCondition ? 'bg-yellow-500 text-white' : 'bg-gray-200'}">${i}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button onclick="closeModal()" class="px-4 py-2 bg-gray-500 text-white rounded-lg">Cancel</button>
+                        <button onclick="saveCondition('${stockNumber}')" class="px-4 py-2 bg-green-500 text-white rounded-lg">Save</button>
+                    </div>
+                </div>
+            `;
+            $('condition-modal').style.display = 'block';
+        }
+
+        function showAddVehicleModal() {
+            $('add-vehicle-modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+
+        // Action Functions
+        function setCondition(stockNumber, type, rating) {
+            const vehicle = vehicleData.find(v => v['Stock #'] === stockNumber);
+            if (vehicle) {
+                if (type === 'exterior') {
+                    vehicle.ExteriorCondition = rating;
+                } else {
+                    vehicle.InteriorCondition = rating;
+                }
+                
+                // Update button styling
+                const buttons = document.querySelectorAll('.condition-btn');
+                buttons.forEach(btn => {
+                    const btnRating = parseInt(btn.textContent);
+                    const isExterior = btn.onclick.toString().includes('exterior');
+                    const targetRating = isExterior ? vehicle.ExteriorCondition : vehicle.InteriorCondition;
+                    
+                    if ((isExterior && type === 'exterior') || (!isExterior && type === 'interior')) {
+                        if (btnRating <= targetRating) {
+                            btn.className = 'condition-btn w-8 h-8 border rounded bg-yellow-500 text-white';
+                        } else {
+                            btn.className = 'condition-btn w-8 h-8 border rounded bg-gray-200';
+                        }
+                    }
+                });
+            }
+        }
+
+        function saveCondition(stockNumber) {
+            saveData();
+            renderAll();
+            closeModal();
+            showNotification(`Condition updated for ${stockNumber}`);
+        }
+
+        function updateNotes(stockNumber) {
+            const vehicle = vehicleData.find(v => v['Stock #'] === stockNumber);
+            const notes = $('vehicle-notes').value;
+            if (vehicle) {
+                vehicle.Notes = notes;
+                saveData();
+                showNotification(`Notes updated for ${stockNumber}`);
+            }
+        }
+
+        function addNewVehicle(event) {
+            event.preventDefault();
+            
+            const stockNumber = $('new-stock').value;
+            const year = parseInt($('new-year').value);
+            const make = $('new-make').value;
+            const model = $('new-model').value;
+            const color = $('new-color').value;
+
+            if (vehicleData.find(v => v['Stock #'] === stockNumber)) {
+                showNotification('Stock number already exists', 'error');
+                return;
+            }
+
+            const newVehicle = {
+                'Stock #': stockNumber,
+                'VIN': '',
+                'Year': year,
+                'Make': make,
+                'Model': model,
+                'Color': color,
+                'Status': 'New Arrival',
+                'Date In': new Date().toISOString().split('T')[0],
+                'ExteriorCondition': 3,
+                'InteriorCondition': 3,
+                'Notes': ''
+            };
+
+            vehicleData.unshift(newVehicle);
+            saveData();
+            renderAll();
+            closeModal();
+            showNotification(`Vehicle ${stockNumber} added successfully`);
+            
+            // Reset form
+            event.target.reset();
+        }
+
+        function deleteVehicle(stockNumber) {
+            if (confirm(`Delete vehicle ${stockNumber}?`)) {
+                const index = vehicleData.findIndex(v => v['Stock #'] === stockNumber);
+                if (index !== -1) {
+                    vehicleData.splice(index, 1);
+                    saveData();
+                    renderAll();
+                    showNotification(`Vehicle ${stockNumber} deleted`);
+                }
+            }
+        }
+
+        function sortInventory(field) {
+            if (currentSortField === field) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortField = field;
+                currentSortDirection = 'asc';
+            }
+
+            vehicleData.sort((a, b) => {
+                let aVal = a[field];
+                let bVal = b[field];
+                
+                if (field === 'Year') {
+                    aVal = parseInt(aVal) || 0;
+                    bVal = parseInt(bVal) || 0;
+                } else if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = (bVal || '').toLowerCase();
+                }
+                
+                if (currentSortDirection === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+
+            // Update sort button styling
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                if (btn.textContent.trim() === field) {
+                    btn.className = 'sort-btn px-3 py-1 text-xs rounded border bg-blue-500 text-white';
+                } else {
+                    btn.className = 'sort-btn px-3 py-1 text-xs rounded border bg-white text-gray-700 hover:bg-gray-100';
+                }
+            });
+
+            renderInventory();
+        }
+
+        // Tab Management
+        function switchTab(tabId) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                if (btn.dataset.tab === tabId) {
+                    btn.className = 'tab-button active px-4 py-2 rounded-lg transition-colors bg-blue-500 text-white';
+                } else {
+                    btn.className = 'tab-button px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300';
+                }
+            });
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            $(tabId + '-content').classList.add('active');
+
+            // Render content
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'workflow') renderWorkflow();
+            if (tabId === 'inventory') renderInventory();
+            if (tabId === 'reports') renderReports();
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderWorkflow();
+            renderInventory();
+            renderReports();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            renderAll();
+
+            // Tab event listeners
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    switchTab(this.dataset.tab);
+                });
+            });
+
+            // Modal close on outside click
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeModal();
+                    }
+                });
+            });
+
+            console.log('✅ Vehicle Reconditioning Tracker loaded successfully!');
+            showNotification('Vehicle Tracker loaded successfully! 🚗✨');
+        });
+    </script>
+</body>
+</html>

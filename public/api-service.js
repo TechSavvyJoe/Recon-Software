@@ -3,45 +3,45 @@
  * Handles communication with the backend server
  */
 
-class ApiService {
-    constructor() {
-        // Use different ports for local development vs production
-        this.baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-            ? 'http://localhost:3002/api' 
-            : '/api';
-    }
-
-    /**
-     * Make HTTP request with error handling
-     */
-    async makeRequest(url, options = {}) {
-        try {
-            const response = await fetch(`${this.baseUrl}${url}`, {
-                ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...options.headers
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('API request failed:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Get current inventory information
-     */
+const ApiService = {
     async getCurrentInventory() {
-        return this.makeRequest('/inventory/current');
-    }
+        const response = await fetch('/api/inventory/current');
+        if (!response.ok) throw new Error('Failed to get current inventory');
+        return await response.json();
+    },
 
+    async uploadInventoryCSV(file, onProgress) {
+        const formData = new FormData();
+        formData.append('inventory', file);
+        
+        const response = await fetch('/api/inventory/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) throw new Error('Upload failed');
+        return await response.json();
+    },
+
+    async getDetailers() {
+        const response = await fetch('/api/detailers');
+        if (!response.ok) throw new Error('Failed to get detailers');
+        return await response.json();
+    },
+
+    async addDetailer(detailer) {
+        const response = await fetch('/api/detailers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(detailer)
+        });
+        
+        if (!response.ok) throw new Error('Failed to add detailer');
+        return await response.json();
+    }
+};
+
+window.ApiService = ApiService;
     /**
      * Upload inventory CSV file
      */

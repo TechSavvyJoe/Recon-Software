@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Reconditioning Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .workflow-stage {
+            transition: all 0.3s ease;
+            min-height: 200px;
+        }
+        .workflow-stage:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .vehicle-card {
+            transition: all 0.3s ease;
+            cursor: grab;
+        }
+        .vehicle-card:active {
+            cursor: grabbing;
+        }
+        .vehicle-card.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+        .workflow-stage.drag-over {
+            background-color: #dbeafe;
+            border: 2px dashed #3b82f6;
+        }
+        .stage-completed {
+            background-color: #10b981;
+            color: white;
+        }
+        .stage-in-progress {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .stage-pending {
+            background-color: #e5e7eb;
+            color: #6b7280;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .star-rating {
+            display: inline-flex;
+            gap: 2px;
+        }
+        .star {
+            color: #d1d5db;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .star.filled {
+            color: #fbbf24;
+        }
+        .star:hover,
+        .star:hover ~ .star {
+            color: #fbbf24;
+        }
+        .tab-buttons {
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .tab-button {
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-button.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Horizontal Timeline Styles */
+        .timeline-container {
+            position: relative;
+            padding: 20px 0;
+        }
+        
+        .timeline-step {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-step:hover .timeline-popup {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(-10px);
+        }
+        
+        .timeline-popup {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 20;
+            margin-top: 10px;
+        }
+        
+        .substep-container {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 12px;
+            min-width: 240px;
+        }
+        
+        .substep-item {
+            padding: 8px;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+        
+        .substep-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .substep-completed {
+            background-color: #ecfdf5;
+        }
+        
+        .substep-completed:hover {
+            background-color: #d1fae5;
+        }
+        
+        /* Notification Styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            max-width: 400px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background-color: #10b981;
+        }
+        
+        .notification.error {
+            background-color: #ef4444;
+        }
+        
+        .notification.warning {
+            background-color: #f59e0b;
+        }
+        
+        .notification.info {
+            background-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center">
+                        <i class="fas fa-car text-blue-600 text-2xl mr-3"></i>
+                        <h1 class="text-xl font-semibold text-gray-900">Vehicle Reconditioning Tracker</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button onclick="showTab('dashboard')" class="tab-button active" data-tab="dashboard">
+                            <i class="fas fa-chart-bar mr-2"></i>Dashboard
+                        </button>
+                        <button onclick="showTab('workflow')" class="tab-button" data-tab="workflow">
+                            <i class="fas fa-stream mr-2"></i>Workflow
+                        </button>
+                        <button onclick="showTab('vehicles')" class="tab-button" data-tab="vehicles">
+                            <i class="fas fa-car mr-2"></i>Vehicles
+                        </button>
+                        <button onclick="showTab('reports')" class="tab-button" data-tab="reports">
+                            <i class="fas fa-chart-line mr-2"></i>Reports
+                        </button>
+                        <button onclick="showUploadModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-upload mr-2"></i>Upload CSV
+                        </button>
+                        <button onclick="exportData()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                            <i class="fas fa-download mr-2"></i>Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content active">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-blue-100 rounded-md p-3">
+                                <i class="fas fa-car text-blue-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Total Vehicles</p>
+                                <p id="total-vehicles" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-yellow-100 rounded-md p-3">
+                                <i class="fas fa-clock text-yellow-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">In Progress</p>
+                                <p id="in-progress" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-green-100 rounded-md p-3">
+                                <i class="fas fa-check-circle text-green-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Lot Ready</p>
+                                <p id="lot-ready" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-red-100 rounded-md p-3">
+                                <i class="fas fa-exclamation-triangle text-red-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Overdue</p>
+                                <p id="overdue" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Workflow Status Distribution</h3>
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Average Days by Stage</h3>
+                        <canvas id="daysChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workflow Tab -->
+            <div id="workflow-tab" class="tab-content">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Vehicle Workflow</h2>
+                    <p class="text-gray-600">Drag and drop vehicles between stages to update their status</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4" id="workflow-container">
+                    <!-- Workflow stages will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Vehicles Tab -->
+            <div id="vehicles-tab" class="tab-content">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                            <h2 class="text-xl font-semibold text-gray-900">Vehicle Inventory</h2>
+                            <div class="mt-4 md:mt-0 flex space-x-4">
+                                <input type="text" id="search-input" placeholder="Search vehicles..." 
+                                       class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                <select id="status-filter" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                    <option value="">All Statuses</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortVehicles('stockNumber')">
+                                        Stock # <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortVehicles('year')">
+                                        Year <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortVehicles('make')">
+                                        Make <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortVehicles('model')">
+                                        Model <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortVehicles('status')">
+                                        Status <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortVehicles('daysInInventory')">
+                                        Days <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="vehicle-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Vehicle rows will be rendered here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reports-tab" class="tab-content">
+                <div class="space-y-6">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-4">Performance Reports</h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-3">Bottleneck Analysis</h3>
+                                <div id="bottleneck-analysis" class="space-y-2">
+                                    <!-- Bottleneck analysis will be rendered here -->
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-3">Completion Times</h3>
+                                <div id="completion-times" class="space-y-2">
+                                    <!-- Completion times will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Detailed Vehicle Report</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vehicle</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Current Stage</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Days in Current</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Days</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estimated Completion</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detailed-report-body" class="bg-white divide-y divide-gray-200">
+                                    <!-- Detailed report will be rendered here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Upload CSV File</h2>
+                <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleFileSelect(event)">
+                <i class="fas fa-upload text-4xl text-gray-400 mb-4"></i>
+                <p class="text-lg font-medium text-gray-600 mb-2">Drop your CSV file here or click to browse</p>
+                <p class="text-sm text-gray-500 mb-4">Supports CSV files with vehicle inventory data</p>
+                <button onclick="document.getElementById('csv-file-input').click()" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium">
+                    Select File
+                </button>
+            </div>
+            
+            <div id="upload-progress" class="mt-4 hidden">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="upload-progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+                <p id="upload-status" class="text-sm text-gray-600 mt-2">Uploading...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vehicle Detail Modal -->
+    <div id="vehicle-modal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="vehicle-modal-title" class="text-xl font-semibold">Vehicle Details</h2>
+                <button onclick="closeVehicleModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="vehicle-modal-body">
+                <!-- Vehicle details will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Update Modal -->
+    <div id="status-modal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Update Vehicle Status</h2>
+                <button onclick="closeStatusModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="status-modal-body">
+                <!-- Status update form will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="main-consolidated.js"></script>
+</body>
+</html>

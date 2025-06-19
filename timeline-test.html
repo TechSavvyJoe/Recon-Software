@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Reconditioning Tracker - Timeline Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <style>
+        /* Copy timeline styles from main index.html */
+        .timeline-container {
+            position: relative;
+            padding: 20px 0;
+        }
+        
+        .timeline-step {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-step:hover .timeline-popup {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(-10px);
+        }
+        
+        .timeline-popup {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 20;
+            margin-top: 10px;
+        }
+        
+        .substep-container {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 12px;
+            min-width: 240px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 1000px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Vehicle Reconditioning Tracker - Timeline Test</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test Vehicle</h2>
+            <button onclick="showVehicleDetails('test-vehicle')" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+                Open Vehicle Details Modal
+            </button>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Features Implemented</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <h3 class="font-medium text-gray-900">✅ Horizontal Timeline</h3>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• Visual progress indicator</li>
+                        <li>• Clickable workflow steps</li>
+                        <li>• Status-based styling</li>
+                        <li>• Completion dates</li>
+                    </ul>
+                </div>
+                <div class="space-y-2">
+                    <h3 class="font-medium text-gray-900">✅ Mechanical Sub-Steps</h3>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• Email Service Manager</li>
+                        <li>• Mechanic Pickup</li>
+                        <li>• Mechanic Return</li>
+                        <li>• Sequential completion</li>
+                    </ul>
+                </div>
+                <div class="space-y-2">
+                    <h3 class="font-medium text-gray-900">✅ Out-of-Order Completion</h3>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• Detail can complete before mechanical</li>
+                        <li>• Photos can complete before mechanical</li>
+                        <li>• Flexible workflow management</li>
+                        <li>• Status validation</li>
+                    </ul>
+                </div>
+                <div class="space-y-2">
+                    <h3 class="font-medium text-gray-900">✅ Enhanced Features</h3>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• Real-time notifications</li>
+                        <li>• Vehicle report export</li>
+                        <li>• Vehicle duplication</li>
+                        <li>• Notes management</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vehicle Detail Modal -->
+    <div id="vehicle-modal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="vehicle-modal-title" class="text-xl font-semibold">Vehicle Details</h2>
+                <button onclick="closeVehicleModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="vehicle-modal-body">
+                <!-- Vehicle details will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="main-consolidated.js"></script>
+    <script>
+        // Create a test vehicle with sample data
+        const testVehicle = {
+            id: 'test-vehicle',
+            stockNumber: 'T12345',
+            year: '2023',
+            make: 'Ford',
+            model: 'Explorer',
+            vin: '1FMHK8F84PGA12345',
+            status: 'Mechanical',
+            daysInInventory: 5,
+            estimatedCompletion: '2025-01-20',
+            dateAdded: new Date().toISOString(),
+            workflowHistory: [],
+            notes: 'Test vehicle for timeline demonstration',
+            assignedDetailer: 'John Smith',
+            priority: 'normal',
+            tags: ['test'],
+            workflowProgress: {}
+        };
+        
+        // Initialize workflow progress for test vehicle
+        WORKFLOW_STAGES.forEach(stage => {
+            if (stage.subSteps) {
+                testVehicle.workflowProgress[stage.id] = {
+                    status: stage.id === 'new-arrival' ? 'completed' : stage.id === 'mechanical' ? 'in-progress' : 'pending',
+                    completedAt: stage.id === 'new-arrival' ? new Date().toISOString() : null,
+                    completedBy: stage.id === 'new-arrival' ? 'System' : null,
+                    subSteps: {}
+                };
+                stage.subSteps.forEach((subStep, index) => {
+                    testVehicle.workflowProgress[stage.id].subSteps[subStep.id] = {
+                        status: index === 0 ? 'completed' : 'pending',
+                        completedAt: index === 0 ? new Date().toISOString() : null,
+                        completedBy: index === 0 ? 'System' : null,
+                        notes: index === 0 ? 'Automatically completed for demo' : ''
+                    };
+                });
+            } else {
+                testVehicle.workflowProgress[stage.id] = {
+                    status: stage.id === 'new-arrival' ? 'completed' : 'pending',
+                    completedAt: stage.id === 'new-arrival' ? new Date().toISOString() : null,
+                    completedBy: stage.id === 'new-arrival' ? 'System' : null,
+                    notes: ''
+                };
+            }
+        });
+        
+        // Add test vehicle to the vehicles array
+        vehicles = [testVehicle];
+        
+        console.log('Test vehicle created:', testVehicle);
+    </script>
+</body>
+</html>

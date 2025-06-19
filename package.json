@@ -1,30 +1,26 @@
 {
   "name": "vehicle-reconditioning-tracker",
   "version": "2.0.0",
-  "description": "Complete Vehicle Reconditioning Workflow Tracker with CSV Integration",
-  "main": "server/server.js",
+  "description": "Vehicle Reconditioning Tracker with CSV support and backend",
+  "main": "start-consolidated.js",
   "scripts": {
-    "start": "cd server && npm start",
+    "start": "node start-consolidated.js",
+    "setup": "bash setup.sh",
     "dev": "cd server && npm run dev",
-    "install-deps": "cd server && npm install",
-    "setup": "npm run install-deps && chmod +x start-server.sh",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "server": "cd server && npm start",
+    "install-deps": "cd server && npm install"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/TechSavvyJoe/Recon-Software.git"
+  "author": "Mission Ford",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=14.0.0"
   },
   "keywords": [
     "vehicle",
-    "reconditioning", 
-    "workflow",
+    "reconditioning",
+    "tracker",
     "inventory",
-    "csv",
-    "admin-panel"
-  ],
-  "author": "TechSavvyJoe",
-  "license": "MIT",
-  "engines": {
-    "node": ">=14.0.0"
-  }
+    "workflow",
+    "automotive"
+  ]
 }

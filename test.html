@@ -1,48 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Test Vehicle Recon Tracker</title>
-    <script>
-        // Simple test to check if the app loads
-        window.onload = function() {
-            console.log('Testing Vehicle Reconditioning Tracker...');
-            
-            // Check if the main elements exist
-            const dashboard = document.getElementById('dashboard-content');
-            const workflow = document.getElementById('workflow-content');
-            const inventory = document.getElementById('inventory-content');
-            
-            console.log('Dashboard element:', dashboard ? 'Found' : 'Missing');
-            console.log('Workflow element:', workflow ? 'Found' : 'Missing');
-            console.log('Inventory element:', inventory ? 'Found' : 'Missing');
-            
-            // Test timeline functionality
-            if (typeof window.showVehicleDetailModal === 'function') {
-                console.log('showVehicleDetailModal function: Available');
-            } else {
-                console.log('showVehicleDetailModal function: Missing');
-            }
-            
-            // Test new workflow functions
-            if (typeof window.toggleTitleInHouse === 'function') {
-                console.log('toggleTitleInHouse function: Available');
-            } else {
-                console.log('toggleTitleInHouse function: Missing');
-            }
-            
-            if (typeof window.updateMechanicalSubStep === 'function') {
-                console.log('updateMechanicalSubStep function: Available');
-            } else {
-                console.log('updateMechanicalSubStep function: Missing');
-            }
-            
-            console.log('Test completed. Check the main application at localhost:8080');
-        };
-    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Recon - Test Page</title>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
 </head>
 <body>
-    <h1>Vehicle Reconditioning Tracker Test</h1>
-    <p>Check the console for test results.</p>
-    <p><a href="http://localhost:8080">Open Main Application</a></p>
+    <h1>Vehicle Recon CSV Test</h1>
+    <div id="output"></div>
+    
+    <script>
+        async function testCSVLoad() {
+            const output = document.getElementById('output');
+            
+            try {
+                const response = await fetch('./Recon -Mission Ford of Dearborn-2025-06-10-0955.csv');
+                if (!response.ok) {
+                    output.innerHTML = `<p style="color: red;">Failed to load CSV file: ${response.status}</p>`;
+                    return;
+                }
+                
+                const csvText = await response.text();
+                output.innerHTML += `<p>CSV file loaded successfully. Size: ${csvText.length} characters</p>`;
+                
+                const results = Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true
+                });
+                
+                output.innerHTML += `<p>Parsed ${results.data.length} rows</p>`;
+                output.innerHTML += `<p>Headers: ${results.meta.fields.join(', ')}</p>`;
+                
+                // Show first few vehicles
+                output.innerHTML += '<h2>First 5 vehicles:</h2>';
+                results.data.slice(0, 5).forEach((row, index) => {
+                    output.innerHTML += `<div style="margin: 10px; padding: 10px; border: 1px solid #ccc;">
+                        <strong>Vehicle ${index + 1}:</strong><br>
+                        Stock #: ${row['Stock #']}<br>
+                        Year: ${row['Year']} ${row['Make']} ${row['Model']}<br>
+                        VIN: ${row['VIN']}<br>
+                        Source: ${row['Vehicle Source']}
+                    </div>`;
+                });
+                
+            } catch (error) {
+                output.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+        
+        testCSVLoad();
+    </script>
 </body>
 </html>

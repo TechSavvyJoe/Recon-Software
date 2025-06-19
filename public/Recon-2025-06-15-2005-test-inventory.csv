@@ -1,4 +1,0 @@
-Stock #,VIN,Year,Make,Model,Body,Color,Inventory Date,Photos,Tags,Odometer,Original Cost,Unit Cost,Vehicle Source
-TEST001,1HGBH41JXMN109186,2023,Honda,Civic,4D Sedan,Blue,2025-06-15,5,,25000,$18000,$17500,Trade-In
-TEST002,2T1BURHE0JC123456,2022,Toyota,Corolla,4D Sedan,Silver,2025-06-15,8,,30000,$16000,$15500,Auction
-TEST003,1G1ZD5ST8JF123789,2021,Chevrolet,Malibu,4D Sedan,Black,2025-06-15,12,,35000,$19000,$18500,Lease Return

@@ -1,0 +1,11 @@
+Stock #,Year,Make,Model,VIN,Color,Odometer,Date In,Status,ExteriorCondition,InteriorCondition,TitleInHouse
+A123456,2022,Ford,F-150,1FTFW1E84NFA12345,Oxford White,25000,2024-01-15,Mechanical,4,4,true
+B789012,2023,Toyota,Camry,4T1C11AK5NU123456,Midnight Black,18000,2024-01-18,Detailing,5,4,false
+C345678,2021,Honda,Civic,2HGFC2F59MH123456,Crystal Black,32000,2024-01-20,Photos,3,3,true
+D901234,2023,Chevrolet,Silverado,1GCUYDED4NZ123456,Summit White,15000,2024-01-22,New Arrival,4,5,false
+E567890,2022,Nissan,Altima,1N4BL4BV4NC123456,Gun Metallic,28000,2024-01-25,Title,3,4,true
+F234567,2021,Jeep,Wrangler,1C4HJXDG5MW123456,Bright White,45000,2024-01-28,Lot Ready,4,3,true
+G890123,2023,RAM,1500,1C6SRFFT5NN123456,Flame Red,12000,2024-02-01,Mechanical,5,5,false
+H456789,2022,Subaru,Outback,4S4BTANC5N3123456,Crystal White,22000,2024-02-03,Detailing,4,4,true
+I012345,2021,Mazda,CX-5,JM3KFBCM5M0123456,Soul Red,38000,2024-02-05,New Arrival,3,3,false
+J678901,2023,Hyundai,Tucson,KMHL14JA5PA123456,Amazon Gray,19000,2024-02-08,Photos,4,4,true
